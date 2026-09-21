@@ -256,6 +256,9 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 21 Sep 2026 | Reference library built as `pigments.js`: 24 pigments, 13 carrying Mixbox's published reference RGBs verbatim, 11 estimated and marked `source: "estimated"` |
+| 21 Sep 2026 | Tinting strength is estimated for every pigment including the Mixbox ones, because Mixbox publishes colour only and no cross-brand strength scale exists for oil paint |
+| 21 Sep 2026 | `Cadmium Red Light` and `Alizarin Crimson` dropped as near-duplicates of Mixbox's Cadmium Red and of Permanent Crimson. The first-launch inventory therefore seeds Cadmium Red in Tischler's red slot; the palette table above still names Cadmium Red Light, because it documents his palette rather than ours |
 | 17 Sep 2026 | Neutral mid-grey interface; colour accuracy takes priority over app aesthetics |
 | 17 Sep 2026 | No in-app tip about iPhone True Tone or Night Shift |
 | 17 Sep 2026 | No further studio conditions beyond large, one-handed touch targets |
@@ -278,4 +281,6 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 **Open questions**
 
-- [ ] Reference library contents: research the Tischler 12 plus common pigments across mainstream oil ranges, then review the list before any code is written.
+- [x] Reference library contents: researched and reviewed, 21 Sep 2026. Built as `pigments.js`.
+- [ ] How `strength` converts parts into effective proportions. Read as a linear multiplier the 1-5 scale makes Phthalo Green only 2.5x Yellow Ochre, which is far short of the real gap. Proposal in a comment in `pigments.js` is `parts * 2^(strength-1)`, giving 8:1. Settle this and write it here before the recipe solver is built.
+- [ ] Whether the Inventory name search needs pigment aliases, so that typing "Alizarin Crimson" finds Permanent Crimson. Not currently in the entry schema.

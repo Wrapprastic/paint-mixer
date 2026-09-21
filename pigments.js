@@ -163,17 +163,11 @@ const PIGMENTS = [
 
   /* --- Reds ------------------------------------------------------------- */
   {
-    // PR108. THIS IS THE WEAKEST ENTRY IN THE FILE — see the note at the end.
-    // Mixbox's "Cadmium Red" sits between Cad Red Light and Cad Red Medium,
-    // so a separate Light is nudged a little further toward orange. The two
-    // may be too close to tell apart in practice.
-    name: 'Cadmium Red Light',
-    referenceRgb: [252, 60, 10],
-    strength: 3,
-    opacity: 'opaque',
-    source: 'estimated'
-  },
-  {
+    // Mixbox's Cadmium Red sits between Cad Red Light and Cad Red Medium, so
+    // this entry also stands in for Tischler's Cadmium Red Light — see the
+    // note on TISCHLER_12 at the foot of the file. A separately estimated
+    // 'Cadmium Red Light' was dropped as too close to this to tell apart in
+    // a mix, which also means a real Mixbox value replaces an estimate.
     name: 'Cadmium Red',
     referenceRgb: [255, 39, 2],
     strength: 3,
@@ -184,18 +178,14 @@ const PIGMENTS = [
     // PR264 / deep PV19. Reasoned against Mixbox's Quinacridone Magenta
     // [128, 2, 46]: crimson is warmer and redder than magenta but still a
     // cool red, so red rises and blue falls. Tischler's cool red.
+    //
+    // This is the only cool-red-not-magenta entry: a separately estimated
+    // 'Alizarin Crimson' was dropped as a near-duplicate. If the Inventory
+    // name search in session 2 wants 'Alizarin Crimson' to find this entry,
+    // that needs an alias mechanism, which is not in DESIGN.md — raise it
+    // rather than adding one quietly.
     name: 'Permanent Crimson',
     referenceRgb: [146, 12, 32],
-    strength: 4,
-    opacity: 'transparent',
-    source: 'estimated'
-  },
-  {
-    // PR83 or a modern hue substitute. Darker and very slightly more violet
-    // than Permanent Crimson, which is the practical difference a painter
-    // reaching for one over the other is after.
-    name: 'Alizarin Crimson',
-    referenceRgb: [118, 15, 38],
     strength: 4,
     opacity: 'transparent',
     source: 'estimated'
@@ -361,6 +351,14 @@ const PIGMENTS = [
  * entry — this list seeds the inventory once and has no authority after that.
  *
  * Names must match `name` in PIGMENTS exactly.
+ *
+ * ONE SUBSTITUTION, flagged because it departs from DESIGN.md's palette table:
+ * Tischler's red is Cadmium Red Light, and this list seeds 'Cadmium Red'
+ * instead. The estimated 'Cadmium Red Light' entry was dropped as too close
+ * to Mixbox's 'Cadmium Red' to distinguish, so the slot is filled by the
+ * Mixbox value. DESIGN.md's palette table still names Cadmium Red Light
+ * because that is genuinely what he uses — the table documents his palette,
+ * not ours. Logged in the DESIGN.md decisions log, 21 Sep 2026.
  */
 const TISCHLER_12 = [
   'Cadmium Lemon',
@@ -370,7 +368,7 @@ const TISCHLER_12 = [
   'Burnt Umber',
   'Burnt Sienna',
   'Yellow Ochre',
-  'Cadmium Red Light',
+  'Cadmium Red',
   'Permanent Crimson',
   'Phthalo Green',
   'Titanium White',
