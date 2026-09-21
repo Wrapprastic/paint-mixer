@@ -23,7 +23,8 @@ rather than quietly deviating.
 - The whole interface is neutral mid-grey. No coloured buttons, accents or
   backgrounds near a colour swatch.
 - Large touch targets, one-handed use, no flow-breaking prompts or dialogs.
-- Recipes are in parts, never percentages or grams.
+- Recipes are solved and stored in parts, never grams. Parts is the default
+  display, with a toggle on the recipe screen to show percentages instead.
 - Never invent pigment data. Values come from `pigments.js`, and anything
   unverified is marked as such in a comment.
 

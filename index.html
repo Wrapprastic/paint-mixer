@@ -514,6 +514,13 @@ input[type="range"]::-webkit-slider-thumb {
           <button class="switch" id="opt-complex" role="switch" aria-checked="false"
                   aria-label="Complex mixes"></button>
         </div>
+        <div class="opt-row">
+          <div>
+            <div class="opt-label">Measure in</div>
+            <div class="opt-sub">Tap to cycle</div>
+          </div>
+          <button class="btn" id="opt-unit" style="width:auto;min-width:160px">Parts</button>
+        </div>
       </div>
       <div id="recipe-cards"></div>
     </div>
@@ -1535,9 +1542,60 @@ function initWheel() {
 /* ===========================================================================
    Recipe screen
    =========================================================================== */
+/* ---------------------------------------------------------------------------
+   How an amount is written.
+   The solver always works in parts, and History always stores parts. This is
+   purely how the number is shown, cycled from the recipe screen.
+   --------------------------------------------------------------------------- */
+const UNITS = ['parts', 'percent'];
+const UNIT_LABEL = { parts: 'Parts', percent: 'Percentages' };
+let partsUnit = 'parts';
+
 function partsLabel(n) {
   if (n < 1) return 'a touch';
   return (Math.round(n * 100) / 100).toString().replace('.00', '');
+}
+
+/* Amounts are worked out for the whole recipe at once, not per line, because
+   percentages have to be shared out across all of them to land on 100.
+
+   A touch stays "a touch" in every mode, and is left out of the total the
+   others are measured against. A knife-tip is a garnish, not a share of the
+   pile: counting it in turns 2 and 5 and a touch into 8/29 and 20/29 and
+   1/29, which is harder to work with than the parts it replaced. It sits
+   inside the 5% rounding either way. */
+function amountsFor(items) {
+  const measured = items.filter(it => it.parts >= 1);
+  const pool = measured.length ? measured : items;
+  const total = pool.reduce((s, it) => s + it.parts, 0) || 1;
+  const isTouch = (it) => measured.length > 0 && it.parts < 1;
+
+  if (partsUnit === 'parts') return items.map(it => partsLabel(it.parts));
+
+  /* Percentages in steps of 5, shared out by largest remainder so the column
+     always sums to exactly 100. Rounding each line on its own is simpler but
+     prints things like 40 + 40 + 10 + 15 = 105, and a recipe that cannot add
+     up is not going to be believed about anything else. */
+  const STEPS = 20;                                   /* 20 x 5% */
+  const raw = items.map(it => isTouch(it) ? 0 : (it.parts / total) * STEPS);
+  const share = raw.map(Math.floor);
+  let left = STEPS - share.reduce((a, b) => a + b, 0);
+  const byRemainder = raw
+    .map((v, i) => ({ i: i, frac: isTouch(items[i]) ? -1 : v - Math.floor(v) }))
+    .filter(e => e.frac >= 0)
+    .sort((a, b) => b.frac - a.frac);
+  for (let k = 0; left > 0 && byRemainder.length; k++, left--) share[byRemainder[k % byRemainder.length].i]++;
+
+  /* Nothing measured should print as 0%: take from the biggest to cover it. */
+  for (let guard = 0; guard < items.length; guard++) {
+    const zero = share.findIndex((v, i) => v === 0 && !isTouch(items[i]));
+    if (zero === -1) break;
+    let big = 0;
+    for (let i = 1; i < share.length; i++) if (share[i] > share[big]) big = i;
+    if (share[big] <= 1) break;
+    share[big]--; share[zero]++;
+  }
+  return items.map((it, i) => isTouch(it) ? 'a touch' : share[i] * 5 + '%');
 }
 
 function cardEl(opts) {
@@ -1600,9 +1658,10 @@ function cardEl(opts) {
 
   /* the mix itself, in order of addition */
   const ul = document.createElement('ul'); ul.className = 'mix-list';
-  for (const it of result.items) {
+  const amounts = amountsFor(result.items);
+  result.items.forEach((it, ai) => {
     const li = document.createElement('li');
-    const pr = document.createElement('span'); pr.className = 'mix-parts'; pr.textContent = partsLabel(it.parts);
+    const pr = document.createElement('span'); pr.className = 'mix-parts'; pr.textContent = amounts[ai];
     const nm = document.createElement('span'); nm.className = 'mix-name'; nm.textContent = it.paint.name;
     if (buySet && buySet.has(it.paint.name)) {
       const b = document.createElement('span'); b.className = 'buy'; b.textContent = 'buy';
@@ -1611,11 +1670,13 @@ function cardEl(opts) {
     const sw = document.createElement('span'); sw.className = 'mix-sw'; sw.style.background = toHex(it.paint.rgb);
     li.append(pr, nm, sw);
     ul.appendChild(li);
-  }
+  });
   card.appendChild(ul);
 
   const on = document.createElement('p'); on.className = 'order-note';
-  on.textContent = 'Add in this order, darks into lights. Parts are knife-loads by volume.';
+  on.textContent = 'Add in this order, darks into lights. ' + (
+    partsUnit === 'percent' ? 'Percentages are by volume, rounded to the nearest 5.'
+                            : 'Parts are knife-loads by volume.');
   card.appendChild(on);
 
   const acts = document.createElement('div'); acts.className = 'card-actions';
@@ -1712,6 +1773,19 @@ async function runSolve() {
   }
   const elapsed = Math.round(performance.now() - t0);
 
+  lastSolve = { targetLab, tRgb, onHandResult, bestResult, deeper, buySet, haveNames, elapsed };
+  await renderRecipe();
+}
+
+/* Redrawing the cards is separate from solving, so cycling the measurement
+   unit re-renders instantly instead of running the solver again. */
+let lastSolve = null;
+
+async function renderRecipe() {
+  if (!lastSolve) return;
+  const { targetLab, tRgb, onHandResult, bestResult, deeper, buySet, haveNames, elapsed } = lastSolve;
+  const holder = $('#recipe-cards');
+
   holder.textContent = '';
   if (!(await store.getSetting('disclaimerSeen'))) {
     const n = document.createElement('div');
@@ -1762,6 +1836,12 @@ $('#opt-complex').addEventListener('click', async (e) => {
   await store.setSetting('complexMixes', !on);
   runSolve();
 });
+$('#opt-unit').addEventListener('click', async (e) => {
+  partsUnit = UNITS[(UNITS.indexOf(partsUnit) + 1) % UNITS.length];
+  e.currentTarget.textContent = UNIT_LABEL[partsUnit];
+  await store.setSetting('partsUnit', partsUnit);
+  await renderRecipe();          /* no re-solve: only the wording changes */
+});
 
 /* --- boot --------------------------------------------------------------- */
 (async function init() {
@@ -1772,6 +1852,9 @@ $('#opt-complex').addEventListener('click', async (e) => {
     renderInventory();
     $('#opt-complex').setAttribute('aria-checked',
       String(!!(await store.getSetting('complexMixes'))));
+    const savedUnit = await store.getSetting('partsUnit');
+    if (UNITS.indexOf(savedUnit) !== -1) partsUnit = savedUnit;
+    $('#opt-unit').textContent = UNIT_LABEL[partsUnit];
     initWheel();
     showView('mix');
   } catch (err) {

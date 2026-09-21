@@ -146,11 +146,19 @@ A project is a named painting that holds the mixes I've saved for it, so a multi
 
 Recipes are parts-based, capped at 3 paints plus white by default, and built from pigment names only.
 
-**1. Parts, not percentages.**
+**1. Parts, with percentages as an option.**
 
 - Whole-number parts, smallest useful range 1 to 10.
 - Anything under one part is written as "a touch" (a knife-tip dot).
 - Parts are by volume on the palette knife, as I'd actually measure them.
+- The recipe screen has a "Measure in" control that cycles between parts and
+  percentages. Parts is the default and is what the solver works in and what
+  History stores; percentages are a display choice only.
+- Percentages are by volume, in steps of 5, shared out by largest remainder so
+  a recipe always sums to exactly 100.
+- A touch stays "a touch" in both modes and is left out of the total the
+  percentages are measured against. A knife-tip is a garnish rather than a
+  share of the pile, and counting it in produces unusable numbers.
 
 **2. Paint count cap.**
 
@@ -256,6 +264,7 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 21 Sep 2026 | Recipe amounts can be shown as parts or as percentages, cycled from the recipe screen. This reverses the 17 Sep "parts, not percentages" decision: parts are still what the solver works in and what History stores, but reading a recipe in parts at the easel turned out to be harder work than expected. Fractions were tried in the same pass and dropped as worse than either |
 | 21 Sep 2026 | Strength converts to effective proportions as `parts * 2^(strength - 3)`, pivoting on moderate = 1.0 and putting Phthalo Green 8x Yellow Ochre. A starting curve, and the first thing calibration should challenge |
 | 21 Sep 2026 | Order of addition sorts by lightness first, not by parts. "Darks go into lights" is stated as an absolute and sorting by parts breaks it whenever the dark paint is the bulk of the mix |
 | 21 Sep 2026 | Whites are exempt from the "strong tinters last" rule. A white's strength means it lightens fast, not that it overpowers, and it is the paint you start from |
