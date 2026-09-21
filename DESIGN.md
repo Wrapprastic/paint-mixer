@@ -256,6 +256,10 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 21 Sep 2026 | Strength converts to effective proportions as `parts * 2^(strength - 3)`, pivoting on moderate = 1.0 and putting Phthalo Green 8x Yellow Ochre. A starting curve, and the first thing calibration should challenge |
+| 21 Sep 2026 | Order of addition sorts by lightness first, not by parts. "Darks go into lights" is stated as an absolute and sorting by parts breaks it whenever the dark paint is the bulk of the mix |
+| 21 Sep 2026 | Whites are exempt from the "strong tinters last" rule. A white's strength means it lightens fast, not that it overpowers, and it is the paint you start from |
+| 21 Sep 2026 | "Closer with more paints" triggers at 1.0 CIEDE2000, about one just-noticeable difference. It will rarely appear: three paints plus white already reach ΔE 2 on most targets, and where they do not, the target is outside the palette's reach and more paints cannot help |
 | 21 Sep 2026 | Reference library built as `pigments.js`: 24 pigments, 13 carrying Mixbox's published reference RGBs verbatim, 11 estimated and marked `source: "estimated"` |
 | 21 Sep 2026 | Tinting strength is estimated for every pigment including the Mixbox ones, because Mixbox publishes colour only and no cross-brand strength scale exists for oil paint |
 | 21 Sep 2026 | `Cadmium Red Light` and `Alizarin Crimson` dropped as near-duplicates of Mixbox's Cadmium Red and of Permanent Crimson. The first-launch inventory therefore seeds Cadmium Red in Tischler's red slot; the palette table above still names Cadmium Red Light, because it documents his palette rather than ours |
@@ -282,5 +286,7 @@ Anything not on this page's feature list stays out unless a decision in the log 
 **Open questions**
 
 - [x] Reference library contents: researched and reviewed, 21 Sep 2026. Built as `pigments.js`.
-- [ ] How `strength` converts parts into effective proportions. Read as a linear multiplier the 1-5 scale makes Phthalo Green only 2.5x Yellow Ochre, which is far short of the real gap. Proposal in a comment in `pigments.js` is `parts * 2^(strength-1)`, giving 8:1. Settle this and write it here before the recipe solver is built.
+- [x] How `strength` converts parts into effective proportions. Settled 21 Sep 2026 as `parts * 2^(strength - 3)`; see the decisions log.
 - [ ] Whether the Inventory name search needs pigment aliases, so that typing "Alizarin Crimson" finds Permanent Crimson. Not currently in the entry schema.
+- [ ] Whites and blacks are identified by matching "white" or "black" in the pigment name, because nothing in the entry schema marks them. It works for every pigment in the library and for the obvious custom names, but a paint called "Flake" or "Payne's Grey" would not be recognised for the white and black rules. A `role` field would fix it.
+- [ ] Recipes sometimes come out as one part white plus two or three touches. The ratios are right and the predicted swatch is honest, but that is a very small quantity of paint to mix in practice. Consider scaling recipes up to a comfortable knife-load before display.

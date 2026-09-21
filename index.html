@@ -336,6 +336,125 @@ input[type="range"]::-webkit-slider-thumb {
 .sug-sub { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
 .empty { padding: 40px 20px; text-align: center; color: var(--text-faint); font-size: 15px; }
 
+/* --- colour wheel ------------------------------------------------------- */
+.wheel-wrap { padding: 18px 16px 6px; display: flex; justify-content: center; }
+#wheel { touch-action: none; display: block; width: 100%; max-width: 330px; height: auto; }
+
+.target-bar {
+  display: flex; align-items: center; gap: 14px;
+  padding: 6px 16px 16px;
+}
+.target-bar .swatch { width: 62px; height: 62px; }
+.target-bar .tb-main { flex: 1 1 auto; }
+.target-bar .tb-label { font-size: 13px; color: var(--text-faint); }
+.target-bar .tb-val { font-size: 16px; font-variant-numeric: tabular-nums; margin-top: 3px; }
+
+/* --- recipe ------------------------------------------------------------- */
+.recipe-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px 4px;
+}
+.recipe-head .btn { width: auto; padding: 10px 16px; }
+
+.card {
+  margin: 14px 16px;
+  padding: 16px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.card h3 {
+  margin: 0 0 4px; font-size: 16px; font-weight: 600;
+}
+.card .card-sub { font-size: 13px; color: var(--text-faint); margin: 0 0 14px; }
+
+.compare { display: flex; gap: 12px; margin-bottom: 14px; }
+.compare > div { flex: 1 1 0; }
+.compare .cap { font-size: 12px; color: var(--text-faint); margin-bottom: 6px; }
+.compare .big {
+  height: 74px; border-radius: 8px;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 2px var(--panel);
+}
+
+/* Greyscale value strip: the same two colours reduced to their CIELAB
+   lightness, so value can be judged without hue getting in the way. */
+.value-strip { margin-bottom: 14px; }
+.value-strip .cap { font-size: 12px; color: var(--text-faint); margin-bottom: 6px; }
+.value-strip .bars { display: flex; gap: 12px; }
+.value-strip .bars > div {
+  flex: 1 1 0; height: 26px; border-radius: 5px;
+  border: 1px solid var(--line);
+}
+
+.ratings { display: flex; gap: 10px; margin-bottom: 6px; }
+.rating {
+  flex: 1 1 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--raised);
+}
+.rating .r-lab { font-size: 12px; color: var(--text-faint); }
+.rating .r-val { font-size: 16px; font-weight: 600; margin-top: 2px; }
+.reasons { margin: 0 0 14px; padding: 0; list-style: none; }
+.reasons li { font-size: 13px; color: var(--text-dim); margin-top: 6px; line-height: 1.45; }
+
+.mix-list { margin: 0 0 6px; padding: 0; list-style: none; }
+.mix-list li {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.mix-list li:last-child { border-bottom: 0; }
+.mix-parts {
+  flex: 0 0 74px;
+  font-size: 16px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.mix-name { flex: 1 1 auto; font-size: 16px; }
+.mix-sw {
+  flex: 0 0 auto; width: 22px; height: 22px;
+  border-radius: 4px; border: 1px solid var(--line);
+  align-self: center;
+}
+.buy {
+  font-size: 11px; letter-spacing: .3px;
+  padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--text-faint);
+  color: var(--text-dim);
+  margin-left: 8px;
+}
+.order-note { font-size: 12px; color: var(--text-faint); margin: 10px 0 14px; }
+
+.card-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.linkish {
+  background: none; border: 0; padding: 12px 0;
+  color: var(--text-dim); font: inherit; font-size: 14px;
+  text-decoration: underline; text-align: left; cursor: pointer;
+  min-height: var(--tap);
+}
+
+.opts { padding: 4px 16px 0; }
+.opt-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; min-height: var(--tap);
+}
+.opt-row .opt-label { font-size: 15px; }
+.opt-row .opt-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; }
+
+.notice {
+  margin: 14px 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--raised);
+  font-size: 13px; line-height: 1.55; color: var(--text-dim);
+}
+.notice button { margin-top: 10px; }
+
+.solving { padding: 34px 20px; text-align: center; color: var(--text-faint); }
+
 /* --- attribution -------------------------------------------------------- */
 .credit {
   padding: 22px 20px 8px;
@@ -354,7 +473,7 @@ input[type="range"]::-webkit-slider-thumb {
 </header>
 
 <div class="views">
-  <section class="view active" id="view-inventory">
+  <section class="view" id="view-inventory">
     <div id="inv-list"></div>
     <div class="pad">
       <button class="btn" id="btn-add">Add a paint</button>
@@ -367,8 +486,37 @@ input[type="range"]::-webkit-slider-thumb {
 
   <!-- Stubs only. These tabs are in DESIGN.md's four-tab layout, so the shell
        exists now; the screens themselves come in later sessions. -->
-  <section class="view" id="view-mix">
-    <p class="stub">Target and recipe.<br>Built in a later session.</p>
+  <section class="view active" id="view-mix">
+    <!-- Target: hue ring plus a saturation/brightness square, Photoshop style. -->
+    <div id="mix-target">
+      <div class="wheel-wrap"><canvas id="wheel" width="330" height="330"></canvas></div>
+      <div class="target-bar">
+        <div class="swatch" id="target-swatch"></div>
+        <div class="tb-main">
+          <div class="tb-label">Target colour</div>
+          <div class="tb-val" id="target-val"></div>
+        </div>
+      </div>
+      <div class="pad"><button class="btn" id="btn-solve">Mix this colour</button></div>
+    </div>
+
+    <!-- Recipe -->
+    <div id="mix-recipe" style="display:none">
+      <div class="recipe-head">
+        <button class="btn" id="btn-back">Adjust target</button>
+      </div>
+      <div class="opts">
+        <div class="opt-row">
+          <div>
+            <div class="opt-label">Complex mixes</div>
+            <div class="opt-sub">Allow up to 5 paints plus white</div>
+          </div>
+          <button class="switch" id="opt-complex" role="switch" aria-checked="false"
+                  aria-label="Complex mixes"></button>
+        </div>
+      </div>
+      <div id="recipe-cards"></div>
+    </div>
   </section>
   <section class="view" id="view-history">
     <p class="stub">Recipes you have marked as mixed.<br>Built in a later session.</p>
@@ -379,10 +527,11 @@ input[type="range"]::-webkit-slider-thumb {
 </div>
 
 <nav class="tabs" role="tablist">
-  <button class="tab" role="tab" data-view="mix" aria-selected="false">Mix</button>
+  <!-- DESIGN.md: the app opens straight onto the Target screen. -->
+  <button class="tab" role="tab" data-view="mix" aria-selected="true">Mix</button>
   <button class="tab" role="tab" data-view="history" aria-selected="false">History</button>
   <button class="tab" role="tab" data-view="projects" aria-selected="false">Projects</button>
-  <button class="tab" role="tab" data-view="inventory" aria-selected="true">Inventory</button>
+  <button class="tab" role="tab" data-view="inventory" aria-selected="false">Inventory</button>
 </nav>
 
 <div class="sheet-back" id="sheet-back"></div>
@@ -456,6 +605,7 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<script src="mixbox.js"></script>
 <script src="pigments.js"></script>
 <script>
 'use strict';
@@ -467,7 +617,7 @@ input[type="range"]::-webkit-slider-thumb {
    written so adding them is additive and does not disturb existing data.
    =========================================================================== */
 const DB_NAME = 'paint-mixer';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let db = null;
 
 function openDb() {
@@ -480,6 +630,11 @@ function openDb() {
       }
       if (!d.objectStoreNames.contains('settings')) {
         d.createObjectStore('settings', { keyPath: 'key' });
+      }
+      /* v2: the Mixed button starts logging now, so entries are already there
+         when the History screen gets built. */
+      if (!d.objectStoreNames.contains('history')) {
+        d.createObjectStore('history', { keyPath: 'at' });
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -502,7 +657,9 @@ const store = {
   putPaint:   (p)    => tx('inventory', 'readwrite', s => s.put(p)),
   delPaint:   (id)   => tx('inventory', 'readwrite', s => s.delete(id)),
   getSetting: (k)    => tx('settings',  'readonly',  s => s.get(k)).then(r => r && r.value),
-  setSetting: (k, v) => tx('settings',  'readwrite', s => s.put({ key: k, value: v }))
+  setSetting: (k, v) => tx('settings',  'readwrite', s => s.put({ key: k, value: v })),
+  addHistory: (e)    => tx('history',   'readwrite', s => s.put(e)),
+  allHistory: ()     => tx('history',   'readonly',  s => s.getAll())
 };
 
 /* ===========================================================================
@@ -794,6 +951,402 @@ async function addCustom(name) {
 }
 
 /* ===========================================================================
+   Colour science
+   CIELAB throughout, D65, and CIEDE2000 for perceptual difference, as
+   DESIGN.md specifies. The solver's hot loop stays in linear float RGB and
+   never round-trips through 8-bit sRGB.
+   =========================================================================== */
+const D65 = [0.95047, 1.0, 1.08883];
+
+const toLinear = (c) => c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+const toSrgb   = (c) => c <= 0.0031308 ? c * 12.92 : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+
+function linearToLab(r, g, b) {
+  const x = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / D65[0];
+  const y = (0.2126729 * r + 0.7151522 * g + 0.0721750 * b) / D65[1];
+  const z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / D65[2];
+  const f = (t) => t > 0.008856451679 ? Math.cbrt(t) : (903.2962962 * t + 16) / 116;
+  const fx = f(x), fy = f(y), fz = f(z);
+  return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+}
+
+const rgbToLab = (rgb) => linearToLab(toLinear(rgb[0] / 255), toLinear(rgb[1] / 255), toLinear(rgb[2] / 255));
+
+/* A CIELAB lightness rendered as neutral grey, for the value strip. */
+function greyForL(L) {
+  const fy = (L + 16) / 116;
+  const y = fy > 0.2068965517 ? fy * fy * fy : (116 * fy - 16) / 903.2962962;
+  const v = Math.round(Math.max(0, Math.min(1, toSrgb(y))) * 255);
+  return [v, v, v];
+}
+
+const rad = (d) => d * Math.PI / 180;
+const deg = (r) => r * 180 / Math.PI;
+const hueAngle = (a, b) => { const h = deg(Math.atan2(b, a)); return h < 0 ? h + 360 : h; };
+
+/* CIEDE2000. excludeLightness drops the lightness term, which is how
+   DESIGN.md defines the separate Colour rating. */
+function ciede2000(lab1, lab2, excludeLightness) {
+  const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2;
+  const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2);
+  const Cbar = (C1 + C2) / 2;
+  const Cbar7 = Math.pow(Cbar, 7);
+  const G = 0.5 * (1 - Math.sqrt(Cbar7 / (Cbar7 + 6103515625)));   /* 25^7 */
+  const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+  const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+  const h1p = (C1p === 0) ? 0 : hueAngle(a1p, b1);
+  const h2p = (C2p === 0) ? 0 : hueAngle(a2p, b2);
+
+  const dLp = L2 - L1;
+  const dCp = C2p - C1p;
+  let dhp = 0;
+  if (C1p * C2p !== 0) {
+    dhp = h2p - h1p;
+    if (dhp > 180) dhp -= 360; else if (dhp < -180) dhp += 360;
+  }
+  const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(rad(dhp) / 2);
+
+  const Lbarp = (L1 + L2) / 2;
+  const Cbarp = (C1p + C2p) / 2;
+  let hbarp;
+  if (C1p * C2p === 0) hbarp = h1p + h2p;
+  else if (Math.abs(h1p - h2p) <= 180) hbarp = (h1p + h2p) / 2;
+  else hbarp = (h1p + h2p < 360) ? (h1p + h2p + 360) / 2 : (h1p + h2p - 360) / 2;
+
+  const T = 1 - 0.17 * Math.cos(rad(hbarp - 30)) + 0.24 * Math.cos(rad(2 * hbarp))
+              + 0.32 * Math.cos(rad(3 * hbarp + 6)) - 0.20 * Math.cos(rad(4 * hbarp - 63));
+  const dTheta = 30 * Math.exp(-Math.pow((hbarp - 275) / 25, 2));
+  const Cbarp7 = Math.pow(Cbarp, 7);
+  const RC = 2 * Math.sqrt(Cbarp7 / (Cbarp7 + 6103515625));
+  const SL = 1 + (0.015 * Math.pow(Lbarp - 50, 2)) / Math.sqrt(20 + Math.pow(Lbarp - 50, 2));
+  const SC = 1 + 0.045 * Cbarp;
+  const SH = 1 + 0.015 * Cbarp * T;
+  const RT = -Math.sin(rad(2 * dTheta)) * RC;
+
+  const tC = dCp / SC, tH = dHp / SH;
+  const tL = excludeLightness ? 0 : dLp / SL;
+  return Math.sqrt(tL * tL + tC * tC + tH * tH + RT * tC * tH);
+}
+
+/* ===========================================================================
+   Mixing model
+   ===========================================================================
+   Mixbox mixes by colour alone. It has no idea that a knife-tip of Phthalo
+   Green swamps a whole pile of Yellow Ochre, so parts must be converted into
+   effective proportions before they are handed over (DESIGN.md, Technical 3).
+
+   ASSUMPTION, and the single biggest modelling guess in the app:
+
+       effectiveWeight = parts * 2^(strength - 3)
+
+   Strength 3 (moderate) is the pivot at 1.0. The scale then runs 0.25 to 4.0,
+   putting Phthalo Green 8x Yellow Ochre, which is the right order of magnitude
+   where a linear reading of the 1-5 scale gives a hopeless 2.5x. It is a
+   defensible starting curve and nothing more: it is a candidate for the
+   calibration work, and whites are where it is shakiest, because a white's
+   "strength" is about how fast it lightens rather than how fast it colours,
+   and one scalar is being asked to stand for both.
+   =========================================================================== */
+const STRENGTH_PIVOT = 3;
+const effectiveWeight = (paint, parts) => parts * Math.pow(2, paint.strength - STRENGTH_PIVOT);
+
+const latentCache = new Map();
+function latentOf(rgb) {
+  const k = rgb[0] * 65536 + rgb[1] * 256 + rgb[2];
+  let z = latentCache.get(k);
+  if (!z) { z = mixbox.rgbToLatent(rgb); latentCache.set(k, z); }
+  return z;
+}
+
+const zBuf = new Array(7);
+
+/* Blend in Mixbox latent space and come back as CIELAB, without touching
+   8-bit sRGB. `items` is [{paint, parts}, ...] with at least one part > 0. */
+function mixToLab(items) {
+  let total = 0;
+  for (let i = 0; i < items.length; i++) total += effectiveWeight(items[i].paint, items[i].parts);
+  if (total <= 0) return null;
+  zBuf.fill(0);
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    if (it.parts <= 0) continue;
+    const w = effectiveWeight(it.paint, it.parts) / total;
+    const z = latentOf(it.paint.rgb);
+    for (let j = 0; j < 7; j++) zBuf[j] += w * z[j];
+  }
+  const lin = mixbox.latentToLinearFloatRgb(zBuf);
+  return linearToLab(lin[0], lin[1], lin[2]);
+}
+
+/* Same blend, as an 8-bit colour for display. */
+function mixToRgb(items) {
+  let total = 0;
+  for (const it of items) total += effectiveWeight(it.paint, it.parts);
+  zBuf.fill(0);
+  for (const it of items) {
+    if (it.parts <= 0) continue;
+    const w = effectiveWeight(it.paint, it.parts) / total;
+    const z = latentOf(it.paint.rgb);
+    for (let j = 0; j < 7; j++) zBuf[j] += w * z[j];
+  }
+  return mixbox.latentToRgb(zBuf);
+}
+
+/* ===========================================================================
+   Recipe solver
+   ===========================================================================
+   DESIGN.md asks for a coarse search followed by refinement around the best
+   few, in under a second. Concretely:
+
+     1. shortlist the colourants that can actually get near the target, by
+        testing each one tinted with white at a few ratios;
+     2. coarse-scan singles, pairs and triples from that shortlist over a
+        small parts grid, scored with cheap Euclidean CIELAB distance;
+     3. hill-climb the best handful over a finer parts grid, scored with real
+        CIEDE2000;
+     4. when the cap allows more than three paints, extend the best results by
+        adding a pigment rather than enumerating every larger combination,
+        which would cost hundreds of thousands of evaluations for very little.
+
+   Rules 5 and 6 (chromatic darks first, earths before black) are applied as a
+   score penalty, not a ban: black still wins when it is clearly closer, which
+   is what DESIGN.md asks for.
+   =========================================================================== */
+const isWhite = (p) => /\bwhite\b/i.test(p.name);   /* naming is the only signal we have */
+const isBlack = (p) => /\bblack\b/i.test(p.name);
+
+const BLACK_PENALTY   = 1.2;   /* in CIEDE2000 units */
+const PER_PAINT_COST  = 0.35;  /* tie-break toward fewer paints */
+const COARSE_LEVELS   = [0, 0.25, 1, 2, 5];
+const FINE_LEVELS     = [0, 0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+const sqDist = (p, q) => {
+  const dL = p[0] - q[0], da = p[1] - q[1], db = p[2] - q[2];
+  return dL * dL + da * da + db * db;
+};
+
+function scoreOf(items, targetLab) {
+  const lab = mixToLab(items);
+  if (!lab) return { score: Infinity, lab: null };
+  let s = ciede2000(targetLab, lab, false);
+  let n = 0;
+  for (const it of items) {
+    if (it.parts <= 0) continue;
+    n++;
+    if (isBlack(it.paint)) s += BLACK_PENALTY;
+  }
+  return { score: s + n * PER_PAINT_COST, lab: lab, de: ciede2000(targetLab, lab, false) };
+}
+
+/* Every parts vector over `levels` for n slots, skipping the all-zero one. */
+function* gridVectors(n, levels) {
+  const idx = new Array(n).fill(0);
+  for (;;) {
+    let any = false;
+    for (let i = 0; i < n; i++) if (levels[idx[i]] > 0) { any = true; break; }
+    if (any) yield idx.map(i => levels[i]);
+    let k = n - 1;
+    while (k >= 0 && ++idx[k] >= levels.length) { idx[k] = 0; k--; }
+    if (k < 0) return;
+  }
+}
+
+function evaluate(paints, parts, targetLab) {
+  const items = [];
+  for (let i = 0; i < paints.length; i++) if (parts[i] > 0) items.push({ paint: paints[i], parts: parts[i] });
+  if (!items.length) return null;
+  const r = scoreOf(items, targetLab);
+  if (!isFinite(r.score)) return null;
+  return { items: items, score: r.score, de: r.de, lab: r.lab };
+}
+
+/* Local search: nudge each part up or down one level until nothing improves. */
+function hillClimb(paints, parts, targetLab) {
+  let cur = parts.slice();
+  let best = evaluate(paints, cur, targetLab);
+  if (!best) return null;
+  const idxOf = (v) => {
+    let bi = 0, bd = Infinity;
+    for (let i = 0; i < FINE_LEVELS.length; i++) {
+      const d = Math.abs(FINE_LEVELS[i] - v);
+      if (d < bd) { bd = d; bi = i; }
+    }
+    return bi;
+  };
+  let idx = cur.map(idxOf);
+  for (let iter = 0; iter < 60; iter++) {
+    let improved = false;
+    for (let i = 0; i < paints.length; i++) {
+      for (const step of [1, -1]) {
+        const j = idx[i] + step;
+        if (j < 0 || j >= FINE_LEVELS.length) continue;
+        const trial = idx.slice(); trial[i] = j;
+        const cand = evaluate(paints, trial.map(k => FINE_LEVELS[k]), targetLab);
+        if (cand && cand.score < best.score - 1e-6) { best = cand; idx = trial; improved = true; }
+      }
+    }
+    if (!improved) break;
+  }
+  return best;
+}
+
+function solve(targetLab, available, cap) {
+  const whites = available.filter(isWhite);
+  const colourants = available.filter(p => !isWhite(p));
+  if (!colourants.length && !whites.length) return null;
+
+  /* 1. shortlist: how close can each colourant get when tinted with white? */
+  const tintWhite = whites[0] || null;
+  const ranked = colourants.map(p => {
+    let best = Infinity;
+    for (const t of [0, 0.2, 0.5, 1, 2, 4]) {
+      const items = [{ paint: p, parts: 1 }];
+      if (tintWhite && t > 0) items.push({ paint: tintWhite, parts: t });
+      const lab = mixToLab(items);
+      if (lab) best = Math.min(best, sqDist(lab, targetLab));
+    }
+    return { paint: p, rank: best };
+  }).sort((a, b) => a.rank - b.rank).map(r => r.paint);
+
+  const shortlist = ranked.slice(0, 8);
+  const whiteOptions = whites.length ? [null].concat(whites) : [null];
+  const found = [];
+
+  /* 2. coarse scan of singles, pairs and triples */
+  const combos = [];
+  for (let i = 0; i < shortlist.length; i++) {
+    combos.push([shortlist[i]]);
+    for (let j = i + 1; j < shortlist.length; j++) {
+      combos.push([shortlist[i], shortlist[j]]);
+      for (let k = j + 1; k < shortlist.length; k++) combos.push([shortlist[i], shortlist[j], shortlist[k]]);
+    }
+  }
+  for (const combo of combos) {
+    for (const w of whiteOptions) {
+      const paints = w ? combo.concat([w]) : combo;
+      let bestHere = null;
+      for (const parts of gridVectors(paints.length, COARSE_LEVELS)) {
+        const items = [];
+        for (let i = 0; i < paints.length; i++) if (parts[i] > 0) items.push({ paint: paints[i], parts: parts[i] });
+        if (!items.length) continue;
+        const lab = mixToLab(items);
+        if (!lab) continue;
+        const d = sqDist(lab, targetLab);
+        if (!bestHere || d < bestHere.d) bestHere = { d: d, parts: parts.slice() };
+      }
+      if (bestHere) found.push({ paints: paints, parts: bestHere.parts, d: bestHere.d });
+    }
+  }
+
+  /* 3. refine the best few properly */
+  found.sort((a, b) => a.d - b.d);
+  let results = [];
+  for (const cand of found.slice(0, 14)) {
+    const r = hillClimb(cand.paints, cand.parts, targetLab);
+    if (r) results.push(r);
+  }
+  results.sort((a, b) => a.score - b.score);
+
+  /* 4. beyond three paints, extend rather than enumerate */
+  if (cap > 3 && results.length) {
+    const extra = [];
+    for (const base of results.slice(0, 4)) {
+      const used = new Set(base.items.map(it => it.paint.id || it.paint.name));
+      const colouredCount = base.items.filter(it => !isWhite(it.paint)).length;
+      if (colouredCount >= cap) continue;
+      for (const p of shortlist) {
+        if (used.has(p.id || p.name)) continue;
+        const paints = base.items.map(it => it.paint).concat([p]);
+        const parts  = base.items.map(it => it.parts).concat([0.25]);
+        const r = hillClimb(paints, parts, targetLab);
+        if (r && r.items.filter(it => !isWhite(it.paint)).length <= cap) extra.push(r);
+      }
+    }
+    results = results.concat(extra).sort((a, b) => a.score - b.score);
+  }
+
+  /* respect the cap on coloured paints */
+  results = results.filter(r => r.items.filter(it => !isWhite(it.paint)).length <= cap);
+  if (!results.length) return null;
+
+  const best = results[0];
+  return { items: orderPaints(best.items), de: best.de, lab: best.lab, rgb: mixToRgb(best.items) };
+}
+
+/* Rule 3, order of addition.
+   Lightness leads, not parts. DESIGN.md allows "the dominant or the lightest"
+   paint first but states "darks go into lights, never the reverse" as an
+   absolute, and sorting by parts breaks that absolute whenever the dark paint
+   happens to be the bulk of the mix — 5 parts Burnt Sienna to 2 parts white
+   would tell you to tip white into sienna. Sorting by lightness satisfies all
+   three bullets at once: the leader is always the lightest paint, and nothing
+   dark is ever gone into. */
+function orderPaints(items) {
+  const L = new Map(items.map(it => [it, rgbToLab(it.paint.rgb)[0]]));
+  /* Whites are never "last and in touches". A white's high strength means it
+     lightens fast, not that it overpowers a mix the way a phthalo does, and
+     it is the thing you start from. Without this exemption Titanium White at
+     strength 4.5 gets sorted to the end and the card tells you to tip white
+     into a dark, which is exactly the order rule 3 forbids. */
+  const goesLast = (it) => !isWhite(it.paint) && (it.paint.strength >= 4.5 || it.parts < 1);
+  return items.slice().sort((a, b) => {
+    const aLast = goesLast(a);
+    const bLast = goesLast(b);
+    if (aLast !== bLast) return aLast ? 1 : -1;
+    if (L.get(b) !== L.get(a)) return L.get(b) - L.get(a);
+    return b.parts - a.parts;
+  });
+}
+
+/* ===========================================================================
+   Closeness ratings (DESIGN.md, Technical 8)
+   Placeholder thresholds, to be tuned by the calibration tool later.
+   =========================================================================== */
+const T_CLOSE = 3, T_NEAR = 8;
+const band = (d) => d < T_CLOSE ? 'Close' : (d <= T_NEAR ? 'Near' : 'Rough');
+
+const HUES = [[0,'red'],[25,'orange'],[60,'yellow'],[100,'green'],[180,'cyan'],
+              [240,'blue'],[290,'violet'],[330,'magenta'],[360,'red']];
+function hueName(h) {
+  let best = HUES[0], bd = 361;
+  for (const [deg0, name] of HUES) {
+    const d = Math.min(Math.abs(h - deg0), 360 - Math.abs(h - deg0));
+    if (d < bd) { bd = d; best = [deg0, name]; }
+  }
+  return best[1];
+}
+
+function rateMatch(targetLab, predLab, onHandOnly) {
+  const dL = predLab[0] - targetLab[0];
+  const valueD = Math.abs(dL);
+  const colourD = ciede2000(targetLab, predLab, true);
+  const reasons = [];
+
+  if (band(valueD) !== 'Close') {
+    if (onHandOnly && band(valueD) === 'Rough' && dL > 0) {
+      reasons.push('Can’t get dark enough with the paints on hand.');
+    } else {
+      reasons.push('Value: too ' + (dL > 0 ? 'light' : 'dark') + '.');
+    }
+  }
+  if (band(colourD) !== 'Close') {
+    const tC = Math.hypot(targetLab[1], targetLab[2]);
+    const pC = Math.hypot(predLab[1], predLab[2]);
+    const tH = hueAngle(targetLab[1], targetLab[2]);
+    const pH = hueAngle(predLab[1], predLab[2]);
+    let dh = Math.abs(pH - tH); if (dh > 180) dh = 360 - dh;
+    if (Math.abs(pC - tC) > 6 && dh < 18) {
+      reasons.push('Colour: too ' + (pC < tC ? 'dull' : 'intense') + '.');
+    } else if (tC > 6) {
+      reasons.push('Colour: leaning ' + hueName(pH) + ' of the target, which is ' + hueName(tH) + '.');
+    } else {
+      reasons.push('Colour: not neutral enough.');
+    }
+  }
+  return { value: band(valueD), colour: band(colourD), valueD: valueD, colourD: colourD, reasons: reasons };
+}
+
+/* ===========================================================================
    Wiring
    =========================================================================== */
 function showView(name) {
@@ -854,6 +1407,362 @@ $('#btn-delete').addEventListener('click', async () => {
   closeSheets();
 });
 
+/* ===========================================================================
+   Colour wheel: hue ring plus a saturation/brightness square
+   =========================================================================== */
+const WHEEL = { size: 330, ring: 34, cx: 165, cy: 165 };
+WHEEL.rOuter = 160;
+WHEEL.rInner = WHEEL.rOuter - WHEEL.ring;
+WHEEL.sq = Math.floor(WHEEL.rInner * Math.SQRT2 * 0.5) * 2;   /* inscribed square */
+
+const target = { h: 210, s: 0.45, v: 0.72 };
+
+function hsvToRgb(h, s, v) {
+  const c = v * s, x = c * (1 - Math.abs(((h / 60) % 2) - 1)), m = v - c;
+  let r = 0, g = 0, b = 0;
+  if (h < 60)       { r = c; g = x; }
+  else if (h < 120) { r = x; g = c; }
+  else if (h < 180) { g = c; b = x; }
+  else if (h < 240) { g = x; b = c; }
+  else if (h < 300) { r = x; b = c; }
+  else              { r = c; b = x; }
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+let wheelCtx = null, squareImage = null, squareHue = null;
+
+function drawWheel() {
+  const cv = $('#wheel');
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  if (cv.width !== WHEEL.size * dpr) {
+    cv.width = WHEEL.size * dpr;
+    cv.height = WHEEL.size * dpr;
+  }
+  const ctx = wheelCtx || (wheelCtx = cv.getContext('2d'));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, WHEEL.size, WHEEL.size);
+
+  /* hue ring */
+  ctx.lineWidth = WHEEL.ring;
+  const rMid = (WHEEL.rOuter + WHEEL.rInner) / 2;
+  for (let a = 0; a < 360; a++) {
+    const rgb = hsvToRgb(a, 1, 1);
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+    ctx.arc(WHEEL.cx, WHEEL.cy, rMid, rad(a - 0.8), rad(a + 0.8));
+    ctx.stroke();
+  }
+
+  /* saturation / brightness square, rebuilt only when the hue changes */
+  /* Built at device resolution: putImageData ignores the canvas transform and
+     writes device pixels 1:1, so building it in CSS pixels would land a square
+     of the wrong size and put the marker maths out. */
+  const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
+  const sqPx = Math.round(WHEEL.sq * dpr);
+  if (squareHue !== Math.round(target.h) || !squareImage || squareImage.width !== sqPx) {
+    squareImage = ctx.createImageData(sqPx, sqPx);
+    const d = squareImage.data;
+    for (let y = 0; y < sqPx; y++) {
+      for (let x = 0; x < sqPx; x++) {
+        const rgb = hsvToRgb(target.h, x / (sqPx - 1), 1 - y / (sqPx - 1));
+        const i = (y * sqPx + x) * 4;
+        d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255;
+      }
+    }
+    squareHue = Math.round(target.h);
+  }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.putImageData(squareImage, Math.round(s0 * dpr), Math.round(t0 * dpr));
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  /* markers, neutral only: a dark ring inside a light ring reads on any hue */
+  const ringMark = (x, y, r) => {
+    ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 2; ctx.strokeStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x, y, r - 2.5, 0, Math.PI * 2); ctx.stroke();
+  };
+  ringMark(WHEEL.cx + Math.cos(rad(target.h)) * rMid, WHEEL.cy + Math.sin(rad(target.h)) * rMid, 13);
+  ringMark(s0 + target.s * (WHEEL.sq - 1), t0 + (1 - target.v) * (WHEEL.sq - 1), 11);
+}
+
+function targetRgb() { return hsvToRgb(target.h, target.s, target.v); }
+
+function syncTarget() {
+  const rgb = targetRgb();
+  $('#target-swatch').style.background = toHex(rgb);
+  $('#target-val').textContent = rgb.join(', ') + '   ' + toHex(rgb).toUpperCase();
+}
+
+let dragZone = null;
+function wheelPoint(e) {
+  const cv = $('#wheel');
+  const r = cv.getBoundingClientRect();
+  const scale = WHEEL.size / r.width;
+  return { x: (e.clientX - r.left) * scale, y: (e.clientY - r.top) * scale };
+}
+function wheelApply(p) {
+  const dx = p.x - WHEEL.cx, dy = p.y - WHEEL.cy;
+  const dist = Math.hypot(dx, dy);
+  if (dragZone === null) dragZone = dist > WHEEL.rInner ? 'ring' : 'square';
+  if (dragZone === 'ring') {
+    target.h = (deg(Math.atan2(dy, dx)) + 360) % 360;
+  } else {
+    const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
+    target.s = Math.max(0, Math.min(1, (p.x - s0) / (WHEEL.sq - 1)));
+    target.v = Math.max(0, Math.min(1, 1 - (p.y - t0) / (WHEEL.sq - 1)));
+  }
+  drawWheel();
+  syncTarget();
+}
+
+function initWheel() {
+  const cv = $('#wheel');
+  cv.addEventListener('pointerdown', (e) => {
+    cv.setPointerCapture(e.pointerId);
+    dragZone = null;
+    wheelApply(wheelPoint(e));
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (cv.hasPointerCapture(e.pointerId)) wheelApply(wheelPoint(e));
+  });
+  cv.addEventListener('pointerup', () => { dragZone = null; });
+  cv.addEventListener('pointercancel', () => { dragZone = null; });
+  drawWheel();
+  syncTarget();
+}
+
+/* ===========================================================================
+   Recipe screen
+   =========================================================================== */
+function partsLabel(n) {
+  if (n < 1) return 'a touch';
+  return (Math.round(n * 100) / 100).toString().replace('.00', '');
+}
+
+function cardEl(opts) {
+  const { title, sub, result, targetLab, tRgb, onHandOnly, buySet, deeper } = opts;
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const h = document.createElement('h3'); h.textContent = title;
+  const s = document.createElement('p'); s.className = 'card-sub'; s.textContent = sub;
+  card.append(h, s);
+
+  if (!result) {
+    const none = document.createElement('p');
+    none.className = 'card-sub';
+    none.textContent = 'No mix could be found. Add some paints to your inventory.';
+    card.appendChild(none);
+    return card;
+  }
+
+  const rate = rateMatch(targetLab, result.lab, onHandOnly);
+
+  /* target beside prediction */
+  const cmp = document.createElement('div'); cmp.className = 'compare';
+  for (const [cap, rgb] of [['Target', tRgb], ['This mix', result.rgb]]) {
+    const col = document.createElement('div');
+    const c = document.createElement('div'); c.className = 'cap'; c.textContent = cap;
+    const b = document.createElement('div'); b.className = 'big'; b.style.background = toHex(rgb);
+    col.append(c, b); cmp.appendChild(col);
+  }
+  card.appendChild(cmp);
+
+  /* greyscale value strip */
+  const vs = document.createElement('div'); vs.className = 'value-strip';
+  const vc = document.createElement('div'); vc.className = 'cap'; vc.textContent = 'Value';
+  const bars = document.createElement('div'); bars.className = 'bars';
+  for (const L of [targetLab[0], result.lab[0]]) {
+    const d = document.createElement('div');
+    d.style.background = toHex(greyForL(L));
+    bars.appendChild(d);
+  }
+  vs.append(vc, bars); card.appendChild(vs);
+
+  /* the two ratings */
+  const rr = document.createElement('div'); rr.className = 'ratings';
+  for (const [lab, val] of [['Value', rate.value], ['Colour', rate.colour]]) {
+    const d = document.createElement('div'); d.className = 'rating';
+    const a = document.createElement('div'); a.className = 'r-lab'; a.textContent = lab;
+    const b = document.createElement('div'); b.className = 'r-val'; b.textContent = val;
+    d.append(a, b); rr.appendChild(d);
+  }
+  card.appendChild(rr);
+
+  if (rate.reasons.length) {
+    const ul = document.createElement('ul'); ul.className = 'reasons';
+    for (const r of rate.reasons) {
+      const li = document.createElement('li'); li.textContent = r; ul.appendChild(li);
+    }
+    card.appendChild(ul);
+  }
+
+  /* the mix itself, in order of addition */
+  const ul = document.createElement('ul'); ul.className = 'mix-list';
+  for (const it of result.items) {
+    const li = document.createElement('li');
+    const pr = document.createElement('span'); pr.className = 'mix-parts'; pr.textContent = partsLabel(it.parts);
+    const nm = document.createElement('span'); nm.className = 'mix-name'; nm.textContent = it.paint.name;
+    if (buySet && buySet.has(it.paint.name)) {
+      const b = document.createElement('span'); b.className = 'buy'; b.textContent = 'buy';
+      nm.appendChild(b);
+    }
+    const sw = document.createElement('span'); sw.className = 'mix-sw'; sw.style.background = toHex(it.paint.rgb);
+    li.append(pr, nm, sw);
+    ul.appendChild(li);
+  }
+  card.appendChild(ul);
+
+  const on = document.createElement('p'); on.className = 'order-note';
+  on.textContent = 'Add in this order, darks into lights. Parts are knife-loads by volume.';
+  card.appendChild(on);
+
+  const acts = document.createElement('div'); acts.className = 'card-actions';
+  const mixed = document.createElement('button');
+  mixed.className = 'btn';
+  mixed.textContent = 'Mixed';
+  mixed.addEventListener('click', async () => {
+    await logMixed(title, result, tRgb, rate);
+    mixed.textContent = 'Logged to History';
+    mixed.disabled = true;
+  });
+  acts.appendChild(mixed);
+
+  if (deeper) {
+    const link = document.createElement('button');
+    link.className = 'linkish';
+    link.textContent = 'Closer with more paints — show it';
+    link.addEventListener('click', () => {
+      link.remove();
+      card.appendChild(cardEl({
+        title: title + ', with more paints', sub: 'Up to 5 paints plus white.',
+        result: deeper, targetLab: targetLab, tRgb: tRgb, onHandOnly: onHandOnly, buySet: buySet
+      }));
+    });
+    acts.appendChild(link);
+  }
+  card.appendChild(acts);
+  return card;
+}
+
+async function logMixed(cardName, result, tRgb, rate) {
+  await store.addHistory({
+    at: Date.now(),
+    source: 'wheel',
+    card: cardName,
+    targetRgb: tRgb.slice(),
+    predictedRgb: result.rgb.slice(),
+    recipe: result.items.map(it => ({ name: it.paint.name, parts: it.parts, rgb: it.paint.rgb.slice() })),
+    value: rate.value,
+    colour: rate.colour
+  });
+}
+
+async function runSolve() {
+  showView('mix');
+  $('#mix-target').style.display = 'none';
+  $('#mix-recipe').style.display = '';
+  const holder = $('#recipe-cards');
+  holder.textContent = '';
+  const wait = document.createElement('p');
+  wait.className = 'solving';
+  wait.textContent = 'Working out a mix…';
+  holder.appendChild(wait);
+
+  /* let the browser paint the waiting message before the solver blocks */
+  await new Promise(r => setTimeout(r, 16));
+
+  const complex = $('#opt-complex').getAttribute('aria-checked') === 'true';
+  const cap = complex ? 5 : 3;
+  const tRgb = targetRgb();
+  const targetLab = rgbToLab(tRgb);
+
+  const onHand = state.paints.filter(p => p.onHand);
+  const t0 = performance.now();
+  const onHandResult = onHand.length ? solve(targetLab, onHand, cap) : null;
+
+  /* Best match: on hand, plus anything common from the library that is not
+     already there. Rule 5 says never suggest buying black when a chromatic
+     dark does the job, so black is only added to the buy pool if the on-hand
+     answer cannot reach the target value. */
+  const haveNames = new Set(onHand.map(p => p.name));
+  const needDarker = !onHandResult || Math.abs(onHandResult.lab[0] - targetLab[0]) > T_NEAR;
+  const buyPool = PIGMENTS
+    .filter(p => !haveNames.has(p.name))
+    .filter(p => !isBlack(p) || needDarker)
+    .map(p => ({ id: slug(p.name), name: p.name, rgb: p.referenceRgb, strength: p.strength, opacity: p.opacity }));
+  const buySet = new Set(buyPool.map(p => p.name));
+  const bestResult = solve(targetLab, onHand.concat(buyPool), cap);
+
+  /* Only look for a deeper mix when the simple one is not already spot on. */
+  let deeper = null;
+  if (!complex && onHandResult) {
+    const r = rateMatch(targetLab, onHandResult.lab, true);
+    if (r.value !== 'Close' || r.colour !== 'Close') {
+      /* One CIEDE2000 unit is about the smallest difference the eye picks up,
+         so that is the bar for "noticeably closer". In practice this link
+         almost never appears, because three paints plus white already lands
+         inside ΔE 2 on most targets: where the mix is Rough it is because the
+         target sits outside what the palette can reach at all, and a fourth
+         paint cannot fix that. The Best match card is the answer there. */
+      const d = solve(targetLab, onHand, 5);
+      if (d && d.de < onHandResult.de - 1.0) deeper = d;
+    }
+  }
+  const elapsed = Math.round(performance.now() - t0);
+
+  holder.textContent = '';
+  if (!(await store.getSetting('disclaimerSeen'))) {
+    const n = document.createElement('div');
+    n.className = 'notice';
+    n.append(document.createTextNode(
+      'Predictions are a guide, not a promise. Your phone screen, the light ' +
+      'you are working under, brand differences and the shift between wet and ' +
+      'dry paint all move the real result.'));
+    const ok = document.createElement('button');
+    ok.className = 'btn'; ok.textContent = 'Understood';
+    ok.addEventListener('click', async () => { await store.setSetting('disclaimerSeen', true); n.remove(); });
+    n.appendChild(ok);
+    holder.appendChild(n);
+  }
+
+  holder.appendChild(cardEl({
+    title: 'On hand', sub: 'Only paints you have marked as on hand.',
+    result: onHandResult, targetLab: targetLab, tRgb: tRgb, onHandOnly: true, deeper: deeper
+  }));
+
+  const sameAsOnHand = bestResult && onHandResult &&
+    bestResult.items.every(it => haveNames.has(it.paint.name)) &&
+    Math.abs(bestResult.de - onHandResult.de) < 0.3;
+  holder.appendChild(cardEl({
+    title: 'Best match',
+    sub: sameAsOnHand
+      ? 'Nothing in the reference library would get you closer than what you already own.'
+      : 'Includes paints you would need to buy.',
+    result: bestResult, targetLab: targetLab, tRgb: tRgb, onHandOnly: false, buySet: buySet
+  }));
+
+  const timing = document.createElement('p');
+  timing.className = 'order-note';
+  timing.style.padding = '0 16px 8px';
+  timing.textContent = 'Solved in ' + elapsed + ' ms.';
+  holder.appendChild(timing);
+}
+
+/* --- mix screen wiring -------------------------------------------------- */
+$('#btn-solve').addEventListener('click', runSolve);
+$('#btn-back').addEventListener('click', () => {
+  $('#mix-recipe').style.display = 'none';
+  $('#mix-target').style.display = '';
+});
+$('#opt-complex').addEventListener('click', async (e) => {
+  const on = e.currentTarget.getAttribute('aria-checked') === 'true';
+  e.currentTarget.setAttribute('aria-checked', String(!on));
+  await store.setSetting('complexMixes', !on);
+  runSolve();
+});
+
 /* --- boot --------------------------------------------------------------- */
 (async function init() {
   try {
@@ -861,6 +1770,10 @@ $('#btn-delete').addEventListener('click', async () => {
     await seedIfFirstRun();
     await load();
     renderInventory();
+    $('#opt-complex').setAttribute('aria-checked',
+      String(!!(await store.getSetting('complexMixes'))));
+    initWheel();
+    showView('mix');
   } catch (err) {
     console.error('Storage failed to open', err);
     $('#inv-list').innerHTML =
