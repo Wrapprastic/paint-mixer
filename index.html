@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Paint Mixer">
+<meta name="color-scheme" content="dark">
+<title>Paint Mixer</title>
+<style>
+/* ---------------------------------------------------------------------------
+   Everything here is a neutral grey: R, G and B are equal in every single
+   colour value below, without exception. DESIGN.md requires it, so that no
+   surrounding colour can distort how a paint swatch reads. If you are adding
+   a value here and it is not of the form #nnnnnn with all three pairs equal,
+   it is wrong.
+   --------------------------------------------------------------------------- */
+:root {
+  --bg:        #6e6e6e;  /* app surround, the neutral the eye adapts to */
+  --panel:     #666666;
+  --raised:    #5c5c5c;
+  --sunken:    #545454;
+  --line:      #7d7d7d;
+  --line-soft: #757575;
+  --text:      #ffffff;
+  --text-dim:  #d8d8d8;
+  --text-faint:#b4b4b4;
+
+  --row-h:  68px;   /* large touch targets: studio use, paint on fingers */
+  --tap:    48px;
+  --tab-h:  60px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 17px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* --- app bar ------------------------------------------------------------ */
+.appbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.appbar h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: .2px; }
+.appbar .count { font-size: 14px; color: var(--text-faint); }
+
+/* --- view area ---------------------------------------------------------- */
+.views { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.view { display: none; padding-bottom: 24px; }
+.view.active { display: block; }
+
+.stub {
+  padding: 56px 24px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+/* --- inventory list ----------------------------------------------------- */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--row-h);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  background: none;
+  border-left: 0; border-right: 0; border-top: 0;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.row.off .swatch, .row.off .row-main { opacity: .38; }
+
+/* The swatch sits in a plain mid-grey well with a neutral rim, so nothing
+   next to it can pull the colour. */
+.swatch {
+  flex: 0 0 auto;
+  width: 46px; height: 46px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  box-shadow: inset 0 0 0 2px var(--bg);
+}
+.row-main { flex: 1 1 auto; min-width: 0; }
+.row-name {
+  font-size: 17px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.row-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 5px;
+  font-size: 13px; color: var(--text-faint);
+}
+
+/* strength as a 5-wide bar: greyscale-legible, and handles the .5 steps */
+.strength { display: flex; align-items: center; gap: 6px; }
+.strength-bar {
+  width: 46px; height: 6px;
+  background: var(--sunken);
+  border-radius: 3px;
+  overflow: hidden;
+}
+/* display:block matters — as an inline span this collapses to a 0x0 box and
+   the bar silently renders empty at every strength. */
+.strength-fill { display: block; height: 100%; background: var(--text-dim); }
+
+.est {
+  font-size: 11px; letter-spacing: .3px;
+  padding: 2px 6px; border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--text-faint);
+}
+
+/* --- on-hand switch ----------------------------------------------------- */
+/* The track is drawn as a pseudo-element so the button's own box can be a full
+   48px tall tap target while the switch still looks like a 32px pill. Studio
+   use with paint on the fingers: the target matters more than the graphic. */
+.switch {
+  flex: 0 0 auto;
+  width: 52px; height: var(--tap);
+  min-width: 52px;
+  padding: 0;
+  border: 0;
+  background: none;
+  position: relative;
+  cursor: pointer;
+}
+.switch::before {
+  content: "";
+  position: absolute; left: 0; top: 8px;
+  width: 52px; height: 32px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--sunken);
+  transition: background .15s ease;
+}
+.switch[aria-checked="true"]::before { background: var(--text-dim); }
+.switch::after {
+  content: "";
+  position: absolute; top: 12px; left: 4px;
+  width: 24px; height: 24px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  transition: transform .15s ease;
+}
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+
+/* --- buttons ------------------------------------------------------------ */
+.btn {
+  display: block; width: 100%;
+  min-height: var(--tap);
+  padding: 13px 16px;
+  font: inherit; font-size: 16px;
+  color: var(--text);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn:active { background: var(--sunken); }
+.btn-quiet { background: none; }
+.btn-danger { color: var(--text); border-color: var(--text-faint); }
+
+.pad { padding: 16px; }
+
+/* --- bottom tab bar ----------------------------------------------------- */
+.tabs {
+  flex: 0 0 auto;
+  display: flex;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.tab {
+  flex: 1 1 0;
+  min-height: var(--tab-h);
+  padding: 8px 4px;
+  font: inherit; font-size: 13px;
+  color: var(--text-faint);
+  background: none; border: 0;
+  cursor: pointer;
+}
+.tab[aria-selected="true"] {
+  color: var(--text);
+  box-shadow: inset 0 3px 0 var(--text);
+}
+
+/* --- sheet -------------------------------------------------------------- */
+/* Slides up from the bottom so it is reachable one-handed. It is not a modal
+   dialog in the flow-breaking sense: it never blocks, and tapping the backdrop
+   or Done dismisses it. */
+.sheet-back {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.45);
+  display: none;
+  z-index: 10;
+}
+.sheet-back.open { display: block; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  z-index: 11;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  padding: 8px 16px calc(20px + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  /* visibility and pointer-events, not transform alone. A transform-only
+     hide leaves a full-height fixed element sitting over the list, and if the
+     slide-out transition is ever interrupted it silently swallows every tap
+     on the paints underneath. */
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform .2s ease, visibility 0s linear .2s;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.sheet.open {
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition: transform .2s ease, visibility 0s;
+}
+.grabber {
+  width: 40px; height: 4px; border-radius: 2px;
+  background: var(--line);
+  margin: 6px auto 14px;
+}
+.sheet h2 { margin: 0 0 16px; font-size: 18px; font-weight: 600; }
+
+.field { margin-bottom: 18px; }
+.field label {
+  display: block;
+  font-size: 13px; color: var(--text-faint);
+  margin-bottom: 7px;
+}
+.input, select.input {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 11px 13px;
+  font: inherit;
+  font-size: 16px;            /* 16px minimum stops iOS zooming on focus */
+  color: var(--text);
+  background: var(--sunken);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.input:focus { outline: 2px solid var(--text-faint); outline-offset: -2px; }
+
+.colour-field { display: flex; align-items: center; gap: 14px; }
+.colour-field input[type="color"] {
+  flex: 0 0 auto;
+  width: 62px; height: var(--tap);
+  padding: 0;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.colour-field input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
+.colour-field input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 7px; }
+.colour-field .rgb { font-size: 14px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+
+input[type="range"] {
+  width: 100%; height: var(--tap);
+  -webkit-appearance: none; appearance: none;
+  background: none;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; border-radius: 3px; background: var(--sunken);
+  border: 1px solid var(--line);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 30px; height: 30px; margin-top: -13px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  border: 1px solid var(--line);
+}
+.range-head { display: flex; justify-content: space-between; align-items: baseline; }
+.range-head .val { font-size: 15px; color: var(--text); font-variant-numeric: tabular-nums; }
+.range-legend {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--text-faint);
+  margin-top: -4px;
+}
+
+.row-inline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.note { font-size: 13px; color: var(--text-faint); line-height: 1.5; margin: 0 0 18px; }
+.sheet-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+/* --- add / suggestions -------------------------------------------------- */
+.suggestions { margin: 4px 0 8px; max-height: 46vh; overflow-y: auto; }
+.sug {
+  display: flex; align-items: center; gap: 13px;
+  width: 100%;
+  min-height: 58px;
+  padding: 9px 4px;
+  background: none; border: 0;
+  border-bottom: 1px solid var(--line-soft);
+  color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+}
+.sug:active { background: var(--raised); }
+.sug .swatch { width: 36px; height: 36px; }
+.sug-main { flex: 1 1 auto; min-width: 0; }
+.sug-name { font-size: 16px; }
+.sug-sub { font-size: 12px; color: var(--text-faint); margin-top: 3px; }
+.empty { padding: 40px 20px; text-align: center; color: var(--text-faint); font-size: 15px; }
+
+/* --- attribution -------------------------------------------------------- */
+.credit {
+  padding: 22px 20px 8px;
+  font-size: 11px; line-height: 1.6;
+  color: var(--text-faint);
+  text-align: center;
+}
+.credit a { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header class="appbar">
+  <h1 id="title">Inventory</h1>
+  <span class="count" id="count"></span>
+</header>
+
+<div class="views">
+  <section class="view active" id="view-inventory">
+    <div id="inv-list"></div>
+    <div class="pad">
+      <button class="btn" id="btn-add">Add a paint</button>
+    </div>
+    <p class="credit">
+      Mixing model by <a href="https://github.com/scrtwpns/mixbox" target="_blank" rel="noopener">Mixbox</a>,
+      &copy; 2022 Secret Weapons, used under CC BY-NC 4.0 for non-commercial use.
+    </p>
+  </section>
+
+  <!-- Stubs only. These tabs are in DESIGN.md's four-tab layout, so the shell
+       exists now; the screens themselves come in later sessions. -->
+  <section class="view" id="view-mix">
+    <p class="stub">Target and recipe.<br>Built in a later session.</p>
+  </section>
+  <section class="view" id="view-history">
+    <p class="stub">Recipes you have marked as mixed.<br>Built in a later session.</p>
+  </section>
+  <section class="view" id="view-projects">
+    <p class="stub">Paintings and their saved mixes.<br>Built in a later session.</p>
+  </section>
+</div>
+
+<nav class="tabs" role="tablist">
+  <button class="tab" role="tab" data-view="mix" aria-selected="false">Mix</button>
+  <button class="tab" role="tab" data-view="history" aria-selected="false">History</button>
+  <button class="tab" role="tab" data-view="projects" aria-selected="false">Projects</button>
+  <button class="tab" role="tab" data-view="inventory" aria-selected="true">Inventory</button>
+</nav>
+
+<div class="sheet-back" id="sheet-back"></div>
+
+<!-- Edit sheet -->
+<div class="sheet" id="sheet-edit" role="dialog" aria-label="Edit paint">
+  <div class="grabber"></div>
+  <h2 id="edit-title">Edit paint</h2>
+
+  <div class="field">
+    <label for="f-name">Pigment name</label>
+    <input class="input" id="f-name" type="text" autocapitalize="words" autocomplete="off" spellcheck="false">
+  </div>
+
+  <!-- INTERIM: DESIGN.md says the reference colour is set with the colour wheel
+       or by sampling a photo of a swatch. Neither exists yet, so this is the
+       native picker for now. Replace it with the wheel when that is built. -->
+  <div class="field">
+    <label for="f-colour">Reference colour</label>
+    <div class="colour-field">
+      <input id="f-colour" type="color">
+      <span class="rgb" id="f-rgb"></span>
+    </div>
+  </div>
+
+  <div class="field">
+    <div class="range-head">
+      <label for="f-strength">Tinting strength</label>
+      <span class="val" id="f-strength-val"></span>
+    </div>
+    <input id="f-strength" type="range" min="1" max="5" step="0.5">
+    <div class="range-legend"><span>1 very weak</span><span>5 overpowering</span></div>
+  </div>
+
+  <div class="field">
+    <label for="f-opacity">Opacity</label>
+    <select class="input" id="f-opacity">
+      <option value="opaque">opaque</option>
+      <option value="semi-opaque">semi-opaque</option>
+      <option value="semi-transparent">semi-transparent</option>
+      <option value="transparent">transparent</option>
+    </select>
+  </div>
+
+  <div class="field row-inline">
+    <label for="f-onhand" style="margin:0">On hand</label>
+    <button class="switch" id="f-onhand" role="switch" aria-checked="true" aria-label="On hand"></button>
+  </div>
+
+  <p class="note" id="edit-note"></p>
+
+  <div class="sheet-actions">
+    <button class="btn" id="btn-done">Done</button>
+    <button class="btn btn-quiet" id="btn-reset">Reset to reference values</button>
+    <button class="btn btn-quiet btn-danger" id="btn-delete">Remove from inventory</button>
+  </div>
+</div>
+
+<!-- Add sheet -->
+<div class="sheet" id="sheet-add" role="dialog" aria-label="Add a paint">
+  <div class="grabber"></div>
+  <h2>Add a paint</h2>
+  <div class="field">
+    <label for="f-search">Pigment name</label>
+    <input class="input" id="f-search" type="text" autocapitalize="words" autocomplete="off"
+           spellcheck="false" placeholder="Start typing&hellip;">
+  </div>
+  <div class="suggestions" id="suggestions"></div>
+  <div class="sheet-actions">
+    <button class="btn btn-quiet" id="btn-add-cancel">Cancel</button>
+  </div>
+</div>
+
+<script src="pigments.js"></script>
+<script>
+'use strict';
+
+/* ===========================================================================
+   Storage — IndexedDB, on the device, never uploaded (DESIGN.md, Technical 2).
+   Version 1 creates the two stores this session needs. History, projects and
+   photos get their own stores in a later version bump; the upgrade handler is
+   written so adding them is additive and does not disturb existing data.
+   =========================================================================== */
+const DB_NAME = 'paint-mixer';
+const DB_VERSION = 1;
+let db = null;
+
+function openDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('inventory')) {
+        d.createObjectStore('inventory', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('settings')) {
+        d.createObjectStore('settings', { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function tx(store, mode, fn) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(store, mode);
+    const req = fn(t.objectStore(store));
+    t.oncomplete = () => resolve(req ? req.result : undefined);
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+
+const store = {
+  allPaints:  ()     => tx('inventory', 'readonly',  s => s.getAll()),
+  putPaint:   (p)    => tx('inventory', 'readwrite', s => s.put(p)),
+  delPaint:   (id)   => tx('inventory', 'readwrite', s => s.delete(id)),
+  getSetting: (k)    => tx('settings',  'readonly',  s => s.get(k)).then(r => r && r.value),
+  setSetting: (k, v) => tx('settings',  'readwrite', s => s.put({ key: k, value: v }))
+};
+
+/* ===========================================================================
+   Model
+   =========================================================================== */
+const state = { paints: [], editingId: null };
+
+const slug = (name) => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const libraryByName = (name) => PIGMENTS.find(p => p.name.toLowerCase() === String(name).toLowerCase().trim());
+
+const toHex = (rgb) => '#' + rgb.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const fromHex = (hex) => [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16));
+
+/* An inventory entry is its own record. It starts as a copy of the library
+   values, then belongs to the user: editing it never writes back to PIGMENTS,
+   and PIGMENTS stays available as the thing "reset to reference" restores. */
+function entryFromLibrary(p, order) {
+  return {
+    id: slug(p.name),
+    name: p.name,
+    rgb: p.rgb ? p.rgb.slice() : p.referenceRgb.slice(),
+    strength: p.strength,
+    opacity: p.opacity,
+    source: p.source,
+    onHand: true,
+    order: order
+  };
+}
+
+/* DESIGN.md: first launch pre-fills the inventory with the Tischler 12, all
+   marked on hand. It runs once — after that the inventory is the user's, and
+   an empty inventory is a legitimate state we must not re-seed over. */
+async function seedIfFirstRun() {
+  if (await store.getSetting('seeded')) return;
+  let order = 0;
+  for (const name of TISCHLER_12) {
+    const p = libraryByName(name);
+    if (!p) { console.warn('TISCHLER_12 name not in library:', name); continue; }
+    await store.putPaint(entryFromLibrary(p, order++));
+  }
+  await store.setSetting('seeded', true);
+}
+
+async function load() {
+  const all = await store.allPaints();
+  all.sort((a, b) => (a.order - b.order) || a.name.localeCompare(b.name));
+  state.paints = all;
+}
+
+/* ===========================================================================
+   Rendering
+   =========================================================================== */
+const $ = (sel) => document.querySelector(sel);
+
+function swatchEl(rgb) {
+  const d = document.createElement('div');
+  d.className = 'swatch';
+  d.style.background = toHex(rgb);
+  return d;
+}
+
+function renderInventory() {
+  const list = $('#inv-list');
+  list.textContent = '';
+
+  if (!state.paints.length) {
+    const e = document.createElement('p');
+    e.className = 'empty';
+    e.textContent = 'No paints yet. Add the ones on your palette.';
+    list.appendChild(e);
+  }
+
+  for (const p of state.paints) {
+    const row = document.createElement('div');
+    row.className = 'row' + (p.onHand ? '' : ' off');
+
+    const tap = document.createElement('button');
+    tap.className = 'row';
+    tap.style.cssText = 'border:0;padding:0;min-height:0;flex:1 1 auto;';
+    tap.appendChild(swatchEl(p.rgb));
+
+    const main = document.createElement('div');
+    main.className = 'row-main';
+    const nm = document.createElement('div');
+    nm.className = 'row-name';
+    nm.textContent = p.name;
+    const meta = document.createElement('div');
+    meta.className = 'row-meta';
+
+    const str = document.createElement('span');
+    str.className = 'strength';
+    const bar = document.createElement('span');
+    bar.className = 'strength-bar';
+    const fill = document.createElement('span');
+    fill.className = 'strength-fill';
+    fill.style.width = (p.strength / 5 * 100) + '%';
+    bar.appendChild(fill);
+    str.append(bar, document.createTextNode(p.strength.toFixed(1).replace('.0', '')));
+
+    meta.append(str, Object.assign(document.createElement('span'), { textContent: p.opacity }));
+    if (p.source !== 'mixbox') {
+      const est = document.createElement('span');
+      est.className = 'est';
+      est.textContent = p.source === 'custom' ? 'custom' : 'estimated';
+      meta.appendChild(est);
+    }
+
+    main.append(nm, meta);
+    tap.appendChild(main);
+    tap.addEventListener('click', () => openEdit(p.id));
+
+    const sw = document.createElement('button');
+    sw.className = 'switch';
+    sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-checked', String(!!p.onHand));
+    sw.setAttribute('aria-label', 'On hand: ' + p.name);
+    sw.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      p.onHand = !p.onHand;
+      await store.putPaint(p);
+      renderInventory();
+    });
+
+    row.append(tap, sw);
+    list.appendChild(row);
+  }
+
+  const onHand = state.paints.filter(p => p.onHand).length;
+  $('#count').textContent = state.paints.length
+    ? onHand + ' on hand of ' + state.paints.length
+    : '';
+}
+
+/* ===========================================================================
+   Sheets
+   =========================================================================== */
+function openSheet(id) {
+  $('#sheet-back').classList.add('open');
+  $(id).classList.add('open');
+}
+function closeSheets() {
+  $('#sheet-back').classList.remove('open');
+  $('#sheet-edit').classList.remove('open');
+  $('#sheet-add').classList.remove('open');
+  state.editingId = null;
+}
+
+function setStrengthLabel(v) {
+  const words = { 1: 'very weak', 2: 'weak', 3: 'moderate', 4: 'strong', 5: 'overpowering' };
+  const n = parseFloat(v);
+  const label = words[n] || '';
+  $('#f-strength-val').textContent = (n % 1 ? n.toFixed(1) : n) + (label ? '  ' + label : '');
+}
+
+function openEdit(id) {
+  const p = state.paints.find(x => x.id === id);
+  if (!p) return;
+  state.editingId = id;
+
+  $('#edit-title').textContent = p.name;
+  $('#f-name').value = p.name;
+  $('#f-colour').value = toHex(p.rgb);
+  $('#f-rgb').textContent = p.rgb.join(', ');
+  $('#f-strength').value = p.strength;
+  setStrengthLabel(p.strength);
+  $('#f-opacity').value = p.opacity;
+  $('#f-onhand').setAttribute('aria-checked', String(!!p.onHand));
+
+  const lib = libraryByName(p.name);
+  $('#btn-reset').style.display = lib ? '' : 'none';
+  $('#edit-note').textContent =
+    p.source === 'mixbox'
+      ? 'Reference colour is Mixbox’s published value for this pigment. Tinting strength is an estimate — no published scale exists for oil paint.'
+      : p.source === 'custom'
+        ? 'Your own pigment. Set the colour to match your tube as closely as the screen allows.'
+        : 'Colour and strength are both estimates, not measured values. Adjust them to match your tube.';
+
+  openSheet('#sheet-edit');
+}
+
+async function commitEdit() {
+  const p = state.paints.find(x => x.id === state.editingId);
+  if (!p) return;
+  const name = $('#f-name').value.trim();
+  if (name) p.name = name;
+  p.rgb = fromHex($('#f-colour').value);
+  p.strength = parseFloat($('#f-strength').value);
+  p.opacity = $('#f-opacity').value;
+  p.onHand = $('#f-onhand').getAttribute('aria-checked') === 'true';
+  /* Once a value is hand-set it is no longer the library's, so stop labelling
+     it with the library's provenance. */
+  const lib = libraryByName(p.name);
+  if (!lib || toHex(lib.referenceRgb) !== toHex(p.rgb) || lib.strength !== p.strength) {
+    if (p.source !== 'custom') p.source = 'custom';
+  }
+  await store.putPaint(p);
+  await load();
+  renderInventory();
+}
+
+/* --- add ---------------------------------------------------------------- */
+function renderSuggestions() {
+  const q = $('#f-search').value.trim().toLowerCase();
+  const box = $('#suggestions');
+  box.textContent = '';
+
+  const have = new Set(state.paints.map(p => p.id));
+  const matches = PIGMENTS
+    .filter(p => !have.has(slug(p.name)))
+    .filter(p => !q || p.name.toLowerCase().includes(q))
+    .slice(0, 40);
+
+  for (const p of matches) {
+    const b = document.createElement('button');
+    b.className = 'sug';
+    b.appendChild(swatchEl(p.referenceRgb));
+    const main = document.createElement('div');
+    main.className = 'sug-main';
+    const n = document.createElement('div');
+    n.className = 'sug-name';
+    n.textContent = p.name;
+    const s = document.createElement('div');
+    s.className = 'sug-sub';
+    s.textContent = p.opacity + '  ·  strength ' + String(p.strength).replace('.0', '') +
+                    (p.source === 'estimated' ? '  ·  estimated' : '');
+    main.append(n, s);
+    b.appendChild(main);
+    b.addEventListener('click', () => addFromLibrary(p));
+    box.appendChild(b);
+  }
+
+  /* A pigment the library does not know is still addable (DESIGN.md): it goes
+     in at mid grey and medium strength, for the user to set. */
+  if (q && !PIGMENTS.some(p => p.name.toLowerCase() === q)) {
+    const b = document.createElement('button');
+    b.className = 'sug';
+    b.appendChild(swatchEl([128, 128, 128]));
+    const main = document.createElement('div');
+    main.className = 'sug-main';
+    const n = document.createElement('div');
+    n.className = 'sug-name';
+    n.textContent = 'Add “' + $('#f-search').value.trim() + '”';
+    const s = document.createElement('div');
+    s.className = 'sug-sub';
+    s.textContent = 'Not in the reference list — you set its colour and strength';
+    main.append(n, s);
+    b.appendChild(main);
+    b.addEventListener('click', () => addCustom($('#f-search').value.trim()));
+    box.appendChild(b);
+  }
+
+  if (!box.children.length) {
+    const e = document.createElement('p');
+    e.className = 'empty';
+    e.textContent = 'Everything in the reference list is already in your inventory.';
+    box.appendChild(e);
+  }
+}
+
+function nextOrder() {
+  return state.paints.reduce((m, p) => Math.max(m, p.order || 0), -1) + 1;
+}
+
+async function addFromLibrary(p) {
+  await store.putPaint(entryFromLibrary(p, nextOrder()));
+  await load();
+  renderInventory();
+  closeSheets();
+  openEdit(slug(p.name));
+}
+
+async function addCustom(name) {
+  if (!name) return;
+  const id = slug(name);
+  if (state.paints.some(p => p.id === id)) { closeSheets(); openEdit(id); return; }
+  await store.putPaint({
+    id, name,
+    rgb: [128, 128, 128],
+    strength: 3,               /* medium until calibrated (DESIGN.md) */
+    opacity: 'opaque',
+    source: 'custom',
+    onHand: true,
+    order: nextOrder()
+  });
+  await load();
+  renderInventory();
+  closeSheets();
+  openEdit(id);
+}
+
+/* ===========================================================================
+   Wiring
+   =========================================================================== */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+  document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === name)));
+  $('#title').textContent = { mix: 'Mix', history: 'History', projects: 'Projects', inventory: 'Inventory' }[name];
+  $('#count').style.display = name === 'inventory' ? '' : 'none';
+}
+
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => showView(t.dataset.view));
+});
+
+$('#btn-add').addEventListener('click', () => {
+  $('#f-search').value = '';
+  renderSuggestions();
+  openSheet('#sheet-add');
+});
+$('#btn-add-cancel').addEventListener('click', closeSheets);
+$('#f-search').addEventListener('input', renderSuggestions);
+
+$('#sheet-back').addEventListener('click', async () => {
+  if (state.editingId) await commitEdit();
+  closeSheets();
+});
+$('#btn-done').addEventListener('click', async () => { await commitEdit(); closeSheets(); });
+
+$('#f-colour').addEventListener('input', (e) => {
+  $('#f-rgb').textContent = fromHex(e.target.value).join(', ');
+});
+$('#f-strength').addEventListener('input', (e) => setStrengthLabel(e.target.value));
+$('#f-onhand').addEventListener('click', (e) => {
+  const on = e.currentTarget.getAttribute('aria-checked') === 'true';
+  e.currentTarget.setAttribute('aria-checked', String(!on));
+});
+
+$('#btn-reset').addEventListener('click', async () => {
+  const p = state.paints.find(x => x.id === state.editingId);
+  const lib = p && libraryByName(p.name);
+  if (!lib) return;
+  p.rgb = lib.referenceRgb.slice();
+  p.strength = lib.strength;
+  p.opacity = lib.opacity;
+  p.source = lib.source;
+  await store.putPaint(p);
+  await load();
+  renderInventory();
+  openEdit(p.id);
+});
+
+$('#btn-delete').addEventListener('click', async () => {
+  const id = state.editingId;
+  if (!id) return;
+  state.editingId = null;      /* stop the backdrop handler re-saving it */
+  await store.delPaint(id);
+  await load();
+  renderInventory();
+  closeSheets();
+});
+
+/* --- boot --------------------------------------------------------------- */
+(async function init() {
+  try {
+    db = await openDb();
+    await seedIfFirstRun();
+    await load();
+    renderInventory();
+  } catch (err) {
+    console.error('Storage failed to open', err);
+    $('#inv-list').innerHTML =
+      '<p class="empty">Storage could not be opened, so your inventory cannot load. ' +
+      'If this is a private browsing window, try a normal one.</p>';
+  }
+})();
+</script>
+</body>
+</html>
