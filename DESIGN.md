@@ -264,6 +264,10 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 21 Sep 2026 | Photo sampling: a tap drops a pin, and the button below advances to the recipe. This is how the single-spot fast path and multi-spot live together without a mode to choose between them — one tap plus the button is still two taps |
+| 21 Sep 2026 | Photo samples are averaged in linear light, not over gamma-encoded sRGB, which would bias every sample dark and quietly poison the value ratings |
+| 21 Sep 2026 | Display P3 to sRGB is done by the browser's own colour management when the image is drawn into a plain sRGB canvas. Creating the canvas as display-p3 would break this |
+| 21 Sep 2026 | With several pins, only the On hand card is solved up front; Best match waits until a spot is opened, so eight pins do not mean sixteen solves |
 | 21 Sep 2026 | Recipe amounts can be shown as parts or as percentages, cycled from the recipe screen. This reverses the 17 Sep "parts, not percentages" decision: parts are still what the solver works in and what History stores, but reading a recipe in parts at the easel turned out to be harder work than expected. Fractions were tried in the same pass and dropped as worse than either |
 | 21 Sep 2026 | Strength converts to effective proportions as `parts * 2^(strength - 3)`, pivoting on moderate = 1.0 and putting Phthalo Green 8x Yellow Ochre. A starting curve, and the first thing calibration should challenge |
 | 21 Sep 2026 | Order of addition sorts by lightness first, not by parts. "Darks go into lights" is stated as an absolute and sorting by parts breaks it whenever the dark paint is the bulk of the mix |
@@ -298,4 +302,5 @@ Anything not on this page's feature list stays out unless a decision in the log 
 - [x] How `strength` converts parts into effective proportions. Settled 21 Sep 2026 as `parts * 2^(strength - 3)`; see the decisions log.
 - [ ] Whether the Inventory name search needs pigment aliases, so that typing "Alizarin Crimson" finds Permanent Crimson. Not currently in the entry schema.
 - [ ] Whites and blacks are identified by matching "white" or "black" in the pigment name, because nothing in the entry schema marks them. It works for every pigment in the library and for the obvious custom names, but a paint called "Flake" or "Payne's Grey" would not be recognised for the white and black rules. A `role` field would fix it.
+- [ ] "Save all to project" on the photo screen is not built yet: it needs Projects, which is a later session.
 - [ ] Recipes sometimes come out as one part white plus two or three touches. The ratios are right and the predicted swatch is honest, but that is a very small quantity of paint to mix in practice. Consider scaling recipes up to a comfortable knife-load before display.

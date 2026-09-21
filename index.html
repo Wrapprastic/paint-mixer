@@ -349,6 +349,89 @@ input[type="range"]::-webkit-slider-thumb {
 .target-bar .tb-label { font-size: 13px; color: var(--text-faint); }
 .target-bar .tb-val { font-size: 16px; font-variant-numeric: tabular-nums; margin-top: 3px; }
 
+/* --- photo target ------------------------------------------------------- */
+.seg { display: flex; gap: 10px; padding: 14px 16px 6px; }
+.seg button {
+  flex: 1 1 0; min-height: var(--tap);
+  font: inherit; font-size: 15px;
+  color: var(--text-dim);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+}
+.seg button[aria-selected="true"] { background: var(--text-dim); color: #262626; font-weight: 600; }
+
+.photo-stage { position: relative; margin: 6px 16px 0; }
+#photo-canvas {
+  display: block; width: 100%; height: auto;
+  border-radius: 10px; border: 1px solid var(--line);
+  touch-action: none;
+}
+.pin {
+  position: absolute;
+  width: 36px; height: 36px; margin: -18px 0 0 -18px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+  text-shadow: 0 0 4px #000, 0 0 2px #000;
+  touch-action: none; cursor: grab;
+}
+.pin .x {
+  position: absolute; top: -12px; right: -12px;
+  width: 28px; height: 28px; line-height: 26px;
+  border-radius: 50%;
+  background: #000; color: #fff;
+  border: 1px solid #fff;
+  font-size: 15px; text-align: center; text-shadow: none;
+}
+.loupe {
+  position: absolute; width: 112px; height: 112px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #000;
+  pointer-events: none; display: none; overflow: hidden;
+  margin: -130px 0 0 -56px;
+}
+.loupe canvas { display: block; width: 112px; height: 112px; }
+.photo-empty {
+  margin: 6px 16px 0; padding: 44px 20px;
+  border: 1px dashed var(--line); border-radius: 10px;
+  text-align: center; color: var(--text-faint); font-size: 15px; line-height: 1.6;
+}
+.dark-warn {
+  margin: 12px 16px 0; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 8px;
+  background: var(--raised);
+  font-size: 13px; line-height: 1.5; color: var(--text-dim);
+}
+
+/* --- multi-pin recipe strip --------------------------------------------- */
+.pin-strip {
+  display: flex; gap: 12px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  padding: 12px 16px 6px;
+}
+.pin-card {
+  flex: 0 0 148px; scroll-snap-align: start;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 11px;
+  color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+}
+.pin-card[aria-selected="true"] { border-color: var(--text); background: var(--raised); }
+.pin-card .pc-head { font-size: 13px; color: var(--text-faint); margin-bottom: 8px; }
+.pin-card .pc-sw { display: flex; gap: 6px; margin-bottom: 9px; }
+.pin-card .pc-sw > div {
+  flex: 1 1 0; height: 40px; border-radius: 5px; border: 1px solid var(--line);
+}
+.pin-card .pc-rate { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+
 /* --- recipe ------------------------------------------------------------- */
 .recipe-head {
   display: flex; align-items: center; gap: 12px;
@@ -489,11 +572,34 @@ input[type="range"]::-webkit-slider-thumb {
   <section class="view active" id="view-mix">
     <!-- Target: hue ring plus a saturation/brightness square, Photoshop style. -->
     <div id="mix-target">
-      <div class="wheel-wrap"><canvas id="wheel" width="330" height="330"></canvas></div>
+      <div class="seg">
+        <button id="seg-wheel" aria-selected="true">Colour wheel</button>
+        <button id="seg-photo" aria-selected="false">Photo</button>
+      </div>
+
+      <div id="target-wheel">
+        <div class="wheel-wrap"><canvas id="wheel" width="330" height="330"></canvas></div>
+      </div>
+
+      <div id="target-photo" style="display:none">
+        <div class="photo-empty" id="photo-empty">
+          Take a photo, or pick one from your library.<br>Then tap the colour you want to mix.
+        </div>
+        <div class="photo-stage" id="photo-stage" style="display:none">
+          <canvas id="photo-canvas"></canvas>
+          <div class="loupe" id="loupe"><canvas id="loupe-canvas" width="112" height="112"></canvas></div>
+        </div>
+        <div id="dark-warn"></div>
+        <div class="pad">
+          <button class="btn" id="btn-photo">Choose a photo</button>
+          <input id="photo-input" type="file" accept="image/*" style="display:none">
+        </div>
+      </div>
+
       <div class="target-bar">
         <div class="swatch" id="target-swatch"></div>
         <div class="tb-main">
-          <div class="tb-label">Target colour</div>
+          <div class="tb-label" id="target-label">Target colour</div>
           <div class="tb-val" id="target-val"></div>
         </div>
       </div>
@@ -1526,7 +1632,7 @@ function wheelApply(p) {
 function initWheel() {
   const cv = $('#wheel');
   cv.addEventListener('pointerdown', (e) => {
-    cv.setPointerCapture(e.pointerId);
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
     dragZone = null;
     wheelApply(wheelPoint(e));
   });
@@ -1537,6 +1643,229 @@ function initWheel() {
   cv.addEventListener('pointercancel', () => { dragZone = null; });
   drawWheel();
   syncTarget();
+}
+
+/* ===========================================================================
+   Photo target
+   ===========================================================================
+   COLOUR SPACE: iPhone photos usually carry a Display P3 profile. The canvas
+   here is a plain sRGB one, so the browser colour-manages the image on
+   drawImage and getImageData hands back sRGB. That is the conversion
+   DESIGN.md asks for, and doing it this way rather than by hand is the only
+   route that does not need an ICC implementation in the page. The one thing
+   that would break it is creating the canvas as display-p3, so do not.
+
+   SAMPLING: a small disc is averaged rather than one pixel, and the average
+   is taken in linear light. Averaging gamma-encoded sRGB values directly
+   biases every sample dark, which would quietly poison the value ratings.
+   =========================================================================== */
+const SAMPLE_RADIUS = 6;    /* image pixels */
+const MAX_PINS = 8;
+const DARK_L = 15;          /* below this, cameras have crushed the shadows */
+
+const photo = { img: null, w: 0, h: 0, pins: [], next: 1, ctx: null, dragging: null };
+
+function samplePhoto(nx, ny) {
+  const px = Math.round(nx * (photo.w - 1)), py = Math.round(ny * (photo.h - 1));
+  const r = SAMPLE_RADIUS;
+  const x0 = Math.max(0, px - r), y0 = Math.max(0, py - r);
+  const x1 = Math.min(photo.w - 1, px + r), y1 = Math.min(photo.h - 1, py + r);
+  const d = photo.ctx.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1).data;
+  let lr = 0, lg = 0, lb = 0, n = 0;
+  const w = x1 - x0 + 1;
+  for (let y = y0; y <= y1; y++) {
+    for (let x = x0; x <= x1; x++) {
+      const dx = x - px, dy = y - py;
+      if (dx * dx + dy * dy > r * r) continue;       /* disc, not square */
+      const i = ((y - y0) * w + (x - x0)) * 4;
+      lr += toLinear(d[i] / 255); lg += toLinear(d[i + 1] / 255); lb += toLinear(d[i + 2] / 255);
+      n++;
+    }
+  }
+  if (!n) return [0, 0, 0];
+  const enc = (v) => Math.round(Math.max(0, Math.min(1, toSrgb(v / n))) * 255);
+  return [enc(lr), enc(lg), enc(lb)];
+}
+
+function drawPhoto() {
+  const cv = $('#photo-canvas');
+  cv.width = photo.w; cv.height = photo.h;
+  photo.ctx = cv.getContext('2d', { willReadFrequently: true });
+  photo.ctx.drawImage(photo.img, 0, 0, photo.w, photo.h);
+}
+
+function renderPins() {
+  const stage = $('#photo-stage');
+  [...stage.querySelectorAll('.pin')].forEach(e => e.remove());
+  const cv = $('#photo-canvas');
+  const box = { w: cv.clientWidth, h: cv.clientHeight };
+
+  photo.pins.forEach((pin, i) => {
+    const el = document.createElement('div');
+    el.className = 'pin';
+    el.style.left = (pin.nx * box.w) + 'px';
+    el.style.top  = (pin.ny * box.h) + 'px';
+    el.style.background = toHex(pin.rgb);
+    el.textContent = String(i + 1);
+
+    const x = document.createElement('div');
+    x.className = 'x';
+    x.textContent = '×';
+    x.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
+    x.addEventListener('click', (e) => {
+      e.stopPropagation();
+      photo.pins = photo.pins.filter(p => p !== pin);
+      renderPins(); syncPhotoTarget();
+    });
+    el.appendChild(x);
+
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+      photo.dragging = pin;
+      showLoupe(pin.nx, pin.ny);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (photo.dragging !== pin) return;
+      const r = cv.getBoundingClientRect();
+      pin.nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+      pin.ny = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+      pin.rgb = samplePhoto(pin.nx, pin.ny);
+      el.style.left = (pin.nx * cv.clientWidth) + 'px';
+      el.style.top  = (pin.ny * cv.clientHeight) + 'px';
+      el.style.background = toHex(pin.rgb);
+      showLoupe(pin.nx, pin.ny);
+    });
+    const end = () => { if (photo.dragging === pin) { photo.dragging = null; hideLoupe(); syncPhotoTarget(); } };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointercancel', end);
+
+    stage.appendChild(el);
+  });
+}
+
+function showLoupe(nx, ny) {
+  const lo = $('#loupe'), cv = $('#photo-canvas');
+  const lc = $('#loupe-canvas').getContext('2d');
+  const zoom = 6, span = 112 / zoom;
+  const px = nx * photo.w, py = ny * photo.h;
+  lc.imageSmoothingEnabled = false;
+  lc.clearRect(0, 0, 112, 112);
+  lc.drawImage(cv, px - span / 2, py - span / 2, span, span, 0, 0, 112, 112);
+  /* ring showing exactly the area being averaged */
+  lc.strokeStyle = '#000'; lc.lineWidth = 3;
+  lc.beginPath(); lc.arc(56, 56, SAMPLE_RADIUS * zoom, 0, Math.PI * 2); lc.stroke();
+  lc.strokeStyle = '#fff'; lc.lineWidth = 1.5;
+  lc.beginPath(); lc.arc(56, 56, SAMPLE_RADIUS * zoom, 0, Math.PI * 2); lc.stroke();
+  lo.style.left = (nx * cv.clientWidth) + 'px';
+  lo.style.top  = (ny * cv.clientHeight) + 'px';
+  lo.style.display = 'block';
+}
+const hideLoupe = () => { $('#loupe').style.display = 'none'; };
+
+function syncPhotoTarget() {
+  const n = photo.pins.length;
+  const warn = $('#dark-warn');
+  warn.textContent = '';
+  if (!n) {
+    $('#target-swatch').style.background = 'transparent';
+    $('#target-label').textContent = 'Target colour';
+    $('#target-val').textContent = 'Tap the photo to sample a colour.';
+    $('#btn-solve').disabled = true;
+    $('#btn-solve').textContent = 'Mix this colour';
+    return;
+  }
+  $('#btn-solve').disabled = false;
+  $('#target-swatch').style.background = toHex(photo.pins[0].rgb);
+  $('#target-label').textContent = n === 1 ? 'Target colour' : n + ' spots sampled';
+  $('#target-val').textContent = n === 1
+    ? photo.pins[0].rgb.join(', ') + '   ' + toHex(photo.pins[0].rgb).toUpperCase()
+    : 'Tap more spots, up to ' + MAX_PINS + '.';
+  $('#btn-solve').textContent = n === 1 ? 'Mix this colour' : 'Mix these ' + n + ' colours';
+
+  const dark = photo.pins.filter(p => rgbToLab(p.rgb)[0] < DARK_L);
+  if (dark.length) {
+    const d = document.createElement('div');
+    d.className = 'dark-warn';
+    d.textContent = dark.length === n
+      ? 'That sample is very dark. Cameras crush shadows, so the colour there is unreliable — trust your eye over this one.'
+      : dark.length === 1
+        ? 'One of these spots is very dark, where cameras crush shadows. That sample is unreliable.'
+        : dark.length + ' of these spots are very dark, where cameras crush shadows. Those samples are unreliable.';
+    warn.appendChild(d);
+  }
+}
+
+function initPhoto() {
+  const btn = $('#btn-photo'), input = $('#photo-input'), cv = $('#photo-canvas');
+  btn.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => {
+      /* Downscaled on load: a full 12MP frame is far more than sampling needs
+         and makes getImageData sluggish. */
+      const max = 1400;
+      const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      photo.img = img;
+      photo.w = Math.round(img.naturalWidth * sc);
+      photo.h = Math.round(img.naturalHeight * sc);
+      photo.pins = [];
+      drawPhoto();
+      $('#photo-empty').style.display = 'none';
+      $('#photo-stage').style.display = '';
+      btn.textContent = 'Choose a different photo';
+      renderPins(); syncPhotoTarget();
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => {
+      $('#photo-empty').textContent = 'That image could not be opened. Try another.';
+    };
+    img.src = URL.createObjectURL(f);
+    input.value = '';
+  });
+
+  /* Tap the photo to drop a pin. First tap plus the button is the two-tap
+     fast path; further taps add spots, which is how multi-spot and the fast
+     path live together without a mode to choose between them. */
+  cv.addEventListener('pointerdown', (e) => {
+    if (photo.pins.length >= MAX_PINS) return;
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    const r = cv.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    const pin = { id: photo.next++, nx: nx, ny: ny, rgb: samplePhoto(nx, ny) };
+    photo.pins.push(pin);
+    photo.dragging = pin;
+    renderPins(); showLoupe(nx, ny);
+  });
+  cv.addEventListener('pointermove', (e) => {
+    if (!photo.dragging) return;
+    const pin = photo.dragging;
+    const r = cv.getBoundingClientRect();
+    pin.nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    pin.ny = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    pin.rgb = samplePhoto(pin.nx, pin.ny);
+    renderPins(); showLoupe(pin.nx, pin.ny);
+  });
+  const done = () => { if (photo.dragging) { photo.dragging = null; hideLoupe(); syncPhotoTarget(); } };
+  cv.addEventListener('pointerup', done);
+  cv.addEventListener('pointercancel', done);
+
+  window.addEventListener('resize', () => { if (photo.img) renderPins(); });
+}
+
+let inputMethod = 'wheel';
+async function setInputMethod(m) {
+  inputMethod = m;
+  $('#seg-wheel').setAttribute('aria-selected', String(m === 'wheel'));
+  $('#seg-photo').setAttribute('aria-selected', String(m === 'photo'));
+  $('#target-wheel').style.display = m === 'wheel' ? '' : 'none';
+  $('#target-photo').style.display = m === 'photo' ? '' : 'none';
+  if (m === 'wheel') { $('#btn-solve').disabled = false; $('#target-label').textContent = 'Target colour'; syncTarget(); }
+  else syncPhotoTarget();
+  await store.setSetting('inputMethod', m);
 }
 
 /* ===========================================================================
@@ -1599,7 +1928,7 @@ function amountsFor(items) {
 }
 
 function cardEl(opts) {
-  const { title, sub, result, targetLab, tRgb, onHandOnly, buySet, deeper } = opts;
+  const { title, sub, result, targetLab, tRgb, onHandOnly, buySet, deeper, source } = opts;
   const card = document.createElement('div');
   card.className = 'card';
 
@@ -1684,7 +2013,7 @@ function cardEl(opts) {
   mixed.className = 'btn';
   mixed.textContent = 'Mixed';
   mixed.addEventListener('click', async () => {
-    await logMixed(title, result, tRgb, rate);
+    await logMixed(title, result, tRgb, rate, source || 'wheel');
     mixed.textContent = 'Logged to History';
     mixed.disabled = true;
   });
@@ -1698,7 +2027,8 @@ function cardEl(opts) {
       link.remove();
       card.appendChild(cardEl({
         title: title + ', with more paints', sub: 'Up to 5 paints plus white.',
-        result: deeper, targetLab: targetLab, tRgb: tRgb, onHandOnly: onHandOnly, buySet: buySet
+        result: deeper, targetLab: targetLab, tRgb: tRgb, onHandOnly: onHandOnly,
+        buySet: buySet, source: source
       }));
     });
     acts.appendChild(link);
@@ -1707,10 +2037,10 @@ function cardEl(opts) {
   return card;
 }
 
-async function logMixed(cardName, result, tRgb, rate) {
+async function logMixed(cardName, result, tRgb, rate, source) {
   await store.addHistory({
     at: Date.now(),
-    source: 'wheel',
+    source: source,
     card: cardName,
     targetRgb: tRgb.slice(),
     predictedRgb: result.rgb.slice(),
@@ -1718,6 +2048,50 @@ async function logMixed(cardName, result, tRgb, rate) {
     value: rate.value,
     colour: rate.colour
   });
+}
+
+/* One target's On hand answer. Kept separate from Best match so that a photo
+   with several pins can solve the cheap half for every spot up front and
+   leave the expensive half until a spot is actually opened. */
+function solveOnHand(targetLab, cap) {
+  const onHand = state.paints.filter(p => p.onHand);
+  return {
+    onHandResult: onHand.length ? solve(targetLab, onHand, cap) : null,
+    haveNames: new Set(onHand.map(p => p.name))
+  };
+}
+
+/* Best match: on hand, plus anything common from the library that is not
+   already there. Rule 5 says never suggest buying black when a chromatic dark
+   does the job, so black only joins the buy pool if the on-hand answer cannot
+   reach the target value. */
+function solveBest(targetLab, cap, onHandResult) {
+  const onHand = state.paints.filter(p => p.onHand);
+  const haveNames = new Set(onHand.map(p => p.name));
+  const needDarker = !onHandResult || Math.abs(onHandResult.lab[0] - targetLab[0]) > T_NEAR;
+  const buyPool = PIGMENTS
+    .filter(p => !haveNames.has(p.name))
+    .filter(p => !isBlack(p) || needDarker)
+    .map(p => ({ id: slug(p.name), name: p.name, rgb: p.referenceRgb, strength: p.strength, opacity: p.opacity }));
+  return {
+    bestResult: solve(targetLab, onHand.concat(buyPool), cap),
+    buySet: new Set(buyPool.map(p => p.name))
+  };
+}
+
+function solveDeeper(targetLab, onHandResult, complex) {
+  if (complex || !onHandResult) return null;
+  const r = rateMatch(targetLab, onHandResult.lab, true);
+  if (r.value === 'Close' && r.colour === 'Close') return null;
+  /* One CIEDE2000 unit is about the smallest difference the eye picks up, so
+     that is the bar for "noticeably closer". In practice this link almost
+     never appears, because three paints plus white already lands inside ΔE 2
+     on most targets: where the mix is Rough it is because the target sits
+     outside what the palette can reach at all, and a fourth paint cannot fix
+     that. The Best match card is the answer there. */
+  const onHand = state.paints.filter(p => p.onHand);
+  const d = solve(targetLab, onHand, 5);
+  return (d && d.de < onHandResult.de - 1.0) ? d : null;
 }
 
 async function runSolve() {
@@ -1736,44 +2110,30 @@ async function runSolve() {
 
   const complex = $('#opt-complex').getAttribute('aria-checked') === 'true';
   const cap = complex ? 5 : 3;
-  const tRgb = targetRgb();
-  const targetLab = rgbToLab(tRgb);
 
-  const onHand = state.paints.filter(p => p.onHand);
+  const targets = (inputMethod === 'photo' && photo.pins.length)
+    ? photo.pins.map((p, i) => ({ label: 'Spot ' + (i + 1), rgb: p.rgb.slice() }))
+    : [{ label: 'Target', rgb: targetRgb() }];
+
   const t0 = performance.now();
-  const onHandResult = onHand.length ? solve(targetLab, onHand, cap) : null;
-
-  /* Best match: on hand, plus anything common from the library that is not
-     already there. Rule 5 says never suggest buying black when a chromatic
-     dark does the job, so black is only added to the buy pool if the on-hand
-     answer cannot reach the target value. */
-  const haveNames = new Set(onHand.map(p => p.name));
-  const needDarker = !onHandResult || Math.abs(onHandResult.lab[0] - targetLab[0]) > T_NEAR;
-  const buyPool = PIGMENTS
-    .filter(p => !haveNames.has(p.name))
-    .filter(p => !isBlack(p) || needDarker)
-    .map(p => ({ id: slug(p.name), name: p.name, rgb: p.referenceRgb, strength: p.strength, opacity: p.opacity }));
-  const buySet = new Set(buyPool.map(p => p.name));
-  const bestResult = solve(targetLab, onHand.concat(buyPool), cap);
-
-  /* Only look for a deeper mix when the simple one is not already spot on. */
-  let deeper = null;
-  if (!complex && onHandResult) {
-    const r = rateMatch(targetLab, onHandResult.lab, true);
-    if (r.value !== 'Close' || r.colour !== 'Close') {
-      /* One CIEDE2000 unit is about the smallest difference the eye picks up,
-         so that is the bar for "noticeably closer". In practice this link
-         almost never appears, because three paints plus white already lands
-         inside ΔE 2 on most targets: where the mix is Rough it is because the
-         target sits outside what the palette can reach at all, and a fourth
-         paint cannot fix that. The Best match card is the answer there. */
-      const d = solve(targetLab, onHand, 5);
-      if (d && d.de < onHandResult.de - 1.0) deeper = d;
+  for (const t of targets) {
+    t.lab = rgbToLab(t.rgb);
+    const a = solveOnHand(t.lab, cap);
+    t.onHandResult = a.onHandResult;
+    t.haveNames = a.haveNames;
+    t.deeper = solveDeeper(t.lab, t.onHandResult, complex);
+    /* single target: do the whole job now. several: leave Best match until
+       the spot is opened, so eight pins do not mean sixteen solves. */
+    if (targets.length === 1) {
+      const b = solveBest(t.lab, cap, t.onHandResult);
+      t.bestResult = b.bestResult;
+      t.buySet = b.buySet;
     }
   }
   const elapsed = Math.round(performance.now() - t0);
 
-  lastSolve = { targetLab, tRgb, onHandResult, bestResult, deeper, buySet, haveNames, elapsed };
+  lastSolve = { targets: targets, selected: 0, cap: cap, elapsed: elapsed,
+                source: inputMethod === 'photo' ? 'photo' : 'wheel' };
   await renderRecipe();
 }
 
@@ -1783,10 +2143,10 @@ let lastSolve = null;
 
 async function renderRecipe() {
   if (!lastSolve) return;
-  const { targetLab, tRgb, onHandResult, bestResult, deeper, buySet, haveNames, elapsed } = lastSolve;
+  const { targets, cap, elapsed, source } = lastSolve;
   const holder = $('#recipe-cards');
-
   holder.textContent = '';
+
   if (!(await store.getSetting('disclaimerSeen'))) {
     const n = document.createElement('div');
     n.className = 'notice';
@@ -1801,20 +2161,62 @@ async function renderRecipe() {
     holder.appendChild(n);
   }
 
+  /* Several spots: a swipeable strip of compact cards, tap one to open it. */
+  if (targets.length > 1) {
+    const strip = document.createElement('div');
+    strip.className = 'pin-strip';
+    targets.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'pin-card';
+      b.setAttribute('aria-selected', String(i === lastSolve.selected));
+      const head = document.createElement('div');
+      head.className = 'pc-head'; head.textContent = t.label;
+      const sw = document.createElement('div'); sw.className = 'pc-sw';
+      const a = document.createElement('div'); a.style.background = toHex(t.rgb);
+      const c = document.createElement('div');
+      c.style.background = t.onHandResult ? toHex(t.onHandResult.rgb) : 'transparent';
+      sw.append(a, c);
+      const rt = document.createElement('div'); rt.className = 'pc-rate';
+      if (t.onHandResult) {
+        const r = rateMatch(t.lab, t.onHandResult.lab, true);
+        rt.textContent = 'Value ' + r.value + '\nColour ' + r.colour;
+        rt.style.whiteSpace = 'pre-line';
+      } else {
+        rt.textContent = 'No mix found';
+      }
+      b.append(head, sw, rt);
+      b.addEventListener('click', async () => { lastSolve.selected = i; await renderRecipe(); });
+      strip.appendChild(b);
+    });
+    holder.appendChild(strip);
+  }
+
+  const t = targets[lastSolve.selected];
+
+  /* Best match is solved on demand for multi-spot photos. */
+  if (!t.buySet) {
+    const b = solveBest(t.lab, cap, t.onHandResult);
+    t.bestResult = b.bestResult;
+    t.buySet = b.buySet;
+  }
+
   holder.appendChild(cardEl({
-    title: 'On hand', sub: 'Only paints you have marked as on hand.',
-    result: onHandResult, targetLab: targetLab, tRgb: tRgb, onHandOnly: true, deeper: deeper
+    title: targets.length > 1 ? t.label + ' — on hand' : 'On hand',
+    sub: 'Only paints you have marked as on hand.',
+    result: t.onHandResult, targetLab: t.lab, tRgb: t.rgb,
+    onHandOnly: true, deeper: t.deeper, source: source
   }));
 
-  const sameAsOnHand = bestResult && onHandResult &&
-    bestResult.items.every(it => haveNames.has(it.paint.name)) &&
-    Math.abs(bestResult.de - onHandResult.de) < 0.3;
+  const sameAsOnHand = t.bestResult && t.onHandResult &&
+    t.bestResult.items.every(it => t.haveNames.has(it.paint.name)) &&
+    Math.abs(t.bestResult.de - t.onHandResult.de) < 0.3;
   holder.appendChild(cardEl({
-    title: 'Best match',
+    title: targets.length > 1 ? t.label + ' — best match' : 'Best match',
     sub: sameAsOnHand
       ? 'Nothing in the reference library would get you closer than what you already own.'
       : 'Includes paints you would need to buy.',
-    result: bestResult, targetLab: targetLab, tRgb: tRgb, onHandOnly: false, buySet: buySet
+    result: t.bestResult, targetLab: t.lab, tRgb: t.rgb,
+    onHandOnly: false, buySet: t.buySet, source: source
   }));
 
   const timing = document.createElement('p');
@@ -1836,6 +2238,8 @@ $('#opt-complex').addEventListener('click', async (e) => {
   await store.setSetting('complexMixes', !on);
   runSolve();
 });
+$('#seg-wheel').addEventListener('click', () => setInputMethod('wheel'));
+$('#seg-photo').addEventListener('click', () => setInputMethod('photo'));
 $('#opt-unit').addEventListener('click', async (e) => {
   partsUnit = UNITS[(UNITS.indexOf(partsUnit) + 1) % UNITS.length];
   e.currentTarget.textContent = UNIT_LABEL[partsUnit];
@@ -1856,6 +2260,9 @@ $('#opt-unit').addEventListener('click', async (e) => {
     if (UNITS.indexOf(savedUnit) !== -1) partsUnit = savedUnit;
     $('#opt-unit').textContent = UNIT_LABEL[partsUnit];
     initWheel();
+    initPhoto();
+    const savedInput = await store.getSetting('inputMethod');
+    await setInputMethod(savedInput === 'photo' ? 'photo' : 'wheel');
     showView('mix');
   } catch (err) {
     console.error('Storage failed to open', err);
