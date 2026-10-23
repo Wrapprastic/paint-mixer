@@ -684,6 +684,48 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
   cursor: pointer;
 }
 
+/* --- calibration -------------------------------------------------------- */
+.rate-box { padding-top: 18px; }
+.rate-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.rate-label { flex: 0 0 64px; font-size: 15px; }
+.seg3 { flex: 1 1 auto; display: flex; gap: 8px; }
+.seg3 button {
+  flex: 1 1 0; min-height: var(--tap);
+  font: inherit; font-size: 15px;
+  color: var(--text-dim); background: var(--raised);
+  border: 1px solid var(--line); border-radius: 10px;
+  cursor: pointer;
+}
+.seg3 button[aria-pressed="true"] { background: var(--text-dim); color: #262626; font-weight: 600; }
+
+.steps { margin: 12px 16px 4px; padding-left: 22px; }
+.steps li { font-size: 15px; line-height: 1.5; margin-bottom: 10px; padding-left: 4px; }
+
+.cal-stage canvas {
+  display: block; width: 100%; height: auto;
+  border-radius: 10px; border: 1px solid var(--line);
+  touch-action: none;
+}
+.cal-prompt { font-size: 15px; color: var(--text); margin: 8px 0 0; }
+.cal-chips { display: flex; gap: 10px; padding: 12px 16px 0; }
+.cal-chip {
+  flex: 1 1 0; display: flex; align-items: center; gap: 10px;
+  min-height: var(--tap); padding: 8px 10px;
+  font: inherit; font-size: 14px; text-align: left;
+  color: var(--text-dim); background: var(--raised);
+  border: 1px solid var(--line); border-radius: 10px;
+  cursor: pointer;
+}
+.cal-chip[aria-pressed="true"] { border-color: var(--text); color: var(--text); }
+.cal-chip-sw {
+  flex: 0 0 auto; width: 26px; height: 26px; border-radius: 5px;
+  border: 1px dashed var(--line);
+}
+.cal-change { margin-top: 12px; }
+.cal-swatches { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+.cal-swatches > div { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--line); }
+.sliders { margin-top: 14px; }
+
 /* --- attribution -------------------------------------------------------- */
 .credit {
   padding: 22px 20px 8px;
@@ -703,10 +745,24 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
 
 <div class="views">
   <section class="view" id="view-inventory">
+   <div id="inv-main">
     <div id="inv-list"></div>
     <div class="pad">
       <button class="btn" id="btn-add">Add a paint</button>
     </div>
+    <div class="section-head">Calibration</div>
+    <button class="hrow" id="btn-cal-paint">
+      <div class="h-main">
+        <div class="h-title">Calibrate a paint</div>
+        <div class="h-meta">Fit a paint&rsquo;s colour and strength to your own tube, from a photo of it mixed with white.</div>
+      </div>
+    </button>
+    <button class="hrow" id="btn-cal-thresh">
+      <div class="h-main">
+        <div class="h-title">Closeness ratings</div>
+        <div class="h-meta" id="cal-thresh-meta">Tune what Close, Near and Rough mean, from how your real mixes turned out.</div>
+      </div>
+    </button>
     <div class="section-head">Storage</div>
     <div id="storage"></div>
     <div class="section-head">Backup</div>
@@ -728,6 +784,8 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
       Mixing model by <a href="https://github.com/scrtwpns/mixbox" target="_blank" rel="noopener">Mixbox</a>,
       &copy; 2022 Secret Weapons, used under CC BY-NC 4.0 for non-commercial use.
     </p>
+   </div>
+   <div id="inv-calib" style="display:none"></div>
   </section>
 
   <section class="view active" id="view-mix">
@@ -846,7 +904,7 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
       <label for="f-strength">Tinting strength</label>
       <span class="val" id="f-strength-val"></span>
     </div>
-    <input id="f-strength" type="range" min="1" max="5" step="0.5">
+    <input id="f-strength" type="range" min="1" max="5" step="0.1">
     <div class="range-legend"><span>1 very weak</span><span>5 overpowering</span></div>
   </div>
 
@@ -1118,7 +1176,7 @@ function renderInventory() {
     if (p.source !== 'mixbox') {
       const est = document.createElement('span');
       est.className = 'est';
-      est.textContent = p.source === 'custom' ? 'custom' : 'estimated';
+      est.textContent = p.source === 'custom' ? 'custom' : p.source === 'calibrated' ? 'calibrated' : 'estimated';
       meta.appendChild(est);
     }
 
@@ -1190,8 +1248,11 @@ function openEdit(id) {
     p.source === 'mixbox'
       ? 'Reference colour is Mixbox’s published value for this pigment. Tinting strength is an estimate — no published scale exists for oil paint.'
       : p.source === 'custom'
-        ? 'Your own pigment. Set the colour to match your tube as closely as the screen allows.'
-        : 'Colour and strength are both estimates, not measured values. Adjust them to match your tube.';
+        ? 'Your own values. Set the colour to match your tube as closely as the screen allows.'
+        : p.source === 'calibrated' && p.calibration
+          ? 'Calibrated from a photo of your own tint ' + onDay(p.calibration.at) +
+            '. Reset to go back to the reference values.'
+          : 'Colour and strength are both estimates, not measured values. Adjust them to match your tube.';
 
   openSheet('#sheet-edit');
 }
@@ -1199,18 +1260,19 @@ function openEdit(id) {
 async function commitEdit() {
   const p = state.paints.find(x => x.id === state.editingId);
   if (!p) return;
+  const before = toHex(p.rgb) + '/' + p.strength;
   const name = $('#f-name').value.trim();
   if (name) p.name = name;
   p.rgb = fromHex($('#f-colour').value);
   p.strength = parseFloat($('#f-strength').value);
   p.opacity = $('#f-opacity').value;
   p.onHand = $('#f-onhand').getAttribute('aria-checked') === 'true';
-  /* Once a value is hand-set it is no longer the library's, so stop labelling
-     it with the library's provenance. */
-  const lib = libraryByName(p.name);
-  if (!lib || toHex(lib.referenceRgb) !== toHex(p.rgb) || lib.strength !== p.strength) {
-    if (p.source !== 'custom') p.source = 'custom';
-  }
+  /* Hand-set colour or strength makes the values the user's own, so the
+     reference or calibration label no longer applies. Opening the sheet and
+     closing it again changes nothing, and must not relabel anything: this
+     used to compare against the library instead, which would have turned
+     every calibrated paint into "custom" the first time it was looked at. */
+  if (toHex(p.rgb) + '/' + p.strength !== before) p.source = 'custom';
   await store.putPaint(p);
   await load();
   renderInventory();
@@ -1656,10 +1718,20 @@ function orderPaints(items) {
 
 /* ===========================================================================
    Closeness ratings (DESIGN.md, Technical 8)
-   Placeholder thresholds, to be tuned by the calibration tool later.
+   Value and Colour each have their own pair: [Close below, Near up to].
+   Both start at the placeholder 3 and 8, and the threshold calibration tool
+   can move either. Saved cards keep the ratings they were given, so moving
+   these never rewrites an old mix.
    =========================================================================== */
-const T_CLOSE = 3, T_NEAR = 8;
-const band = (d) => d < T_CLOSE ? 'Close' : (d <= T_NEAR ? 'Near' : 'Rough');
+const DEFAULT_THRESHOLDS = { value: [3, 8], colour: [3, 8] };
+let thresholds = { value: [3, 8], colour: [3, 8] };
+const band = (d, dim) => d < thresholds[dim][0] ? 'Close' : (d <= thresholds[dim][1] ? 'Near' : 'Rough');
+
+function validThresholds(t) {
+  const ok = (pair) => Array.isArray(pair) && pair.length === 2 &&
+    pair.every(v => typeof v === 'number' && isFinite(v) && v > 0) && pair[0] < pair[1];
+  return !!t && ok(t.value) && ok(t.colour);
+}
 
 const HUES = [[0,'red'],[25,'orange'],[60,'yellow'],[100,'green'],[180,'cyan'],
               [240,'blue'],[290,'violet'],[330,'magenta'],[360,'red']];
@@ -1678,14 +1750,14 @@ function rateMatch(targetLab, predLab, onHandOnly) {
   const colourD = ciede2000(targetLab, predLab, true);
   const reasons = [];
 
-  if (band(valueD) !== 'Close') {
-    if (onHandOnly && band(valueD) === 'Rough' && dL > 0) {
+  if (band(valueD, 'value') !== 'Close') {
+    if (onHandOnly && band(valueD, 'value') === 'Rough' && dL > 0) {
       reasons.push('Can’t get dark enough with the paints on hand.');
     } else {
       reasons.push('Value: too ' + (dL > 0 ? 'light' : 'dark') + '.');
     }
   }
-  if (band(colourD) !== 'Close') {
+  if (band(colourD, 'colour') !== 'Close') {
     const tC = Math.hypot(targetLab[1], targetLab[2]);
     const pC = Math.hypot(predLab[1], predLab[2]);
     const tH = hueAngle(targetLab[1], targetLab[2]);
@@ -1699,7 +1771,7 @@ function rateMatch(targetLab, predLab, onHandOnly) {
       reasons.push('Colour: not neutral enough.');
     }
   }
-  return { value: band(valueD), colour: band(colourD), valueD: valueD, colourD: colourD, reasons: reasons };
+  return { value: band(valueD, 'value'), colour: band(colourD, 'colour'), valueD: valueD, colourD: colourD, reasons: reasons };
 }
 
 /* ===========================================================================
@@ -1712,7 +1784,7 @@ function showView(name) {
   $('#count').style.display = name === 'inventory' ? '' : 'none';
   if (name === 'history') renderHistory();
   if (name === 'projects') renderProjects();
-  if (name === 'inventory') { renderStorage(); renderBackupLast(); }
+  if (name === 'inventory') { showInvPane('inv-main'); renderStorage(); renderBackupLast(); renderCalMeta(); }
 }
 
 document.querySelectorAll('.tab').forEach(t => {
@@ -1750,6 +1822,7 @@ $('#btn-reset').addEventListener('click', async () => {
   p.strength = lib.strength;
   p.opacity = lib.opacity;
   p.source = lib.source;
+  delete p.calibration;
   await store.putPaint(p);
   await load();
   renderInventory();
@@ -1912,11 +1985,15 @@ const DARK_L = 15;          /* below this, cameras have crushed the shadows */
 const photo = { img: null, w: 0, h: 0, pins: [], next: 1, ctx: null, dragging: null };
 
 function samplePhoto(nx, ny) {
-  const px = Math.round(nx * (photo.w - 1)), py = Math.round(ny * (photo.h - 1));
-  const r = SAMPLE_RADIUS;
+  return sampleDisc(photo.ctx, photo.w, photo.h, nx, ny, SAMPLE_RADIUS);
+}
+
+/* The average colour of a disc of radius r image pixels, in linear light. */
+function sampleDisc(ctx, W, H, nx, ny, r) {
+  const px = Math.round(nx * (W - 1)), py = Math.round(ny * (H - 1));
   const x0 = Math.max(0, px - r), y0 = Math.max(0, py - r);
-  const x1 = Math.min(photo.w - 1, px + r), y1 = Math.min(photo.h - 1, py + r);
-  const d = photo.ctx.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1).data;
+  const x1 = Math.min(W - 1, px + r), y1 = Math.min(H - 1, py + r);
+  const d = ctx.getImageData(x0, y0, x1 - x0 + 1, y1 - y0 + 1).data;
   let lr = 0, lg = 0, lb = 0, n = 0;
   const w = x1 - x0 + 1;
   for (let y = y0; y <= y1; y++) {
@@ -2420,7 +2497,7 @@ function solveOnHand(targetLab, cap) {
 function solveBest(targetLab, cap, onHandResult) {
   const onHand = state.paints.filter(p => p.onHand);
   const haveNames = new Set(onHand.map(p => p.name));
-  const needDarker = !onHandResult || Math.abs(onHandResult.lab[0] - targetLab[0]) > T_NEAR;
+  const needDarker = !onHandResult || Math.abs(onHandResult.lab[0] - targetLab[0]) > thresholds.value[1];
   const buyPool = PIGMENTS
     .filter(p => !haveNames.has(p.name))
     .filter(p => !isBlack(p) || needDarker)
@@ -2629,6 +2706,12 @@ function dayLabel(t) {
     year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric'
   });
 }
+/* "today", "yesterday" or "on Tue 20 Oct", for the middle of a sentence. */
+function onDay(t) {
+  const l = dayLabel(t);
+  return l === 'Today' || l === 'Yesterday' ? l.toLowerCase() : 'on ' + l;
+}
+
 const timeLabel = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
 const scrollTop = () => { $('.views').scrollTop = 0; };
@@ -2921,6 +3004,8 @@ async function openHistoryEntry(at) {
     title: e.snap.card, sub: 'Exactly as it was when you mixed it.',
     snap: e.snap, context: 'history', source: e.source, thumb: e.thumb
   }));
+
+  d.appendChild(ratingEl(e));
 
   const nf = el('div', 'pad');
   const fld = el('div', 'field');
@@ -3316,10 +3401,9 @@ async function openProjectMix(mixId) {
     d.appendChild(i);
   }
 
-  const dl = dayLabel(m.created);
   d.appendChild(cardEl({
     title: m.label || m.snap.card,
-    sub: 'Saved ' + (dl === 'Today' || dl === 'Yesterday' ? dl.toLowerCase() : 'on ' + dl) + ', exactly as it was.',
+    sub: 'Saved ' + onDay(m.created) + ', exactly as it was.',
     snap: m.snap, context: 'project', projectId: p.id,
     source: m.thumb ? 'photo' : 'wheel', thumb: m.thumb
   }));
@@ -3693,6 +3777,559 @@ function initOffline() {
   }
 }
 
+/* ===========================================================================
+   Calibration (DESIGN.md, Technical 9)
+   Two optional tools, both reached from the Inventory tab, both kept off
+   the mixing flow. Neither is needed to use the app.
+   =========================================================================== */
+function showInvPane(which) {
+  for (const id of ['inv-main', 'inv-calib']) $('#' + id).style.display = id === which ? '' : 'none';
+  scrollTop();
+}
+
+/* --------------------------------------------------------------------------
+   Stage 1: threshold calibration
+   -------------------------------------------------------------------------- */
+const MIN_RATINGS = 10;
+const BANDS = ['Close', 'Near', 'Rough'];
+const DIM_LABEL = { value: 'Value', colour: 'Colour' };
+
+/* The rating control on a History entry. Never shown on a recipe card:
+   DESIGN.md says the app never asks for ratings there. */
+function ratingEl(e) {
+  const box = el('div', 'pad rate-box');
+  box.appendChild(el('div', 'opt-label', 'How close did your real mix look?'));
+  box.appendChild(el('div', 'opt-sub',
+    'Optional. Hold your mix beside the target and judge it by eye. Ratings here tune what Close, Near and Rough mean.'));
+  for (const dim of ['value', 'colour']) {
+    const row = el('div', 'rate-row');
+    row.appendChild(el('div', 'rate-label', DIM_LABEL[dim]));
+    const seg = el('div', 'seg3');
+    const sync = () => seg.querySelectorAll('button').forEach(x =>
+      x.setAttribute('aria-pressed', String(!!(e.rating && e.rating[dim] === x.textContent))));
+    for (const b of BANDS) {
+      const btn = el('button', null, b);
+      btn.addEventListener('click', async () => {
+        const r = Object.assign({ value: null, colour: null }, e.rating || {});
+        r[dim] = r[dim] === b ? null : b;            /* tap the chosen one again to clear it */
+        if (r.value || r.colour) { r.at = Date.now(); e.rating = r; } else delete e.rating;
+        await store.history.put(e);
+        sync();
+      });
+      seg.appendChild(btn);
+    }
+    sync();
+    row.appendChild(seg);
+    box.appendChild(row);
+  }
+  return box;
+}
+
+/* Each rated entry gives, per dimension, the difference the app predicted
+   (recomputed from the stored target and prediction, never from the stored
+   band) and the band the person saw. */
+function ratedPairs(entries, dim) {
+  const out = [];
+  for (const raw of entries) {
+    const e = normaliseHistory(raw);
+    if (!e || !e.rating || !e.rating[dim] || !e.snap || !e.snap.lab || !e.snap.targetLab) continue;
+    const d = dim === 'value'
+      ? Math.abs(e.snap.lab[0] - e.snap.targetLab[0])
+      : ciede2000(e.snap.targetLab, e.snap.lab, true);
+    out.push({ d: d, r: BANDS.indexOf(e.rating[dim]) });
+  }
+  return out;
+}
+
+const bandIndex = (d, t) => d < t[0] ? 0 : (d <= t[1] ? 1 : 2);
+const agreement = (pairs, t) => pairs.filter(p => bandIndex(p.d, t) === p.r).length;
+
+/* Where should the two lines sit to agree best with what the person saw?
+   An exhaustive search over a half-unit grid. Disagreements are counted by
+   how many bands apart they are, so calling a Rough mix Close costs twice as
+   much as calling it Near. A tiny pull toward the current lines breaks ties
+   in favour of changing as little as possible, which matters with only ten
+   or so points to go on. */
+function fitThresholds(pairs, current) {
+  const grid = [];
+  for (let v = 0.5; v <= 30.0001; v += 0.5) grid.push(Math.round(v * 2) / 2);
+  let best = null;
+  for (const t1 of grid) {
+    if (t1 > 15) break;
+    for (const t2 of grid) {
+      if (t2 < t1 + 0.5) continue;
+      let c = 0;
+      for (const p of pairs) c += Math.abs(bandIndex(p.d, [t1, t2]) - p.r);
+      c += 0.001 * (Math.abs(t1 - current[0]) + Math.abs(t2 - current[1]));
+      if (!best || c < best.c) best = { c: c, t: [t1, t2] };
+    }
+  }
+  return best.t;
+}
+
+async function saveThresholds(t) {
+  thresholds = t;
+  await store.setSetting('thresholds', t);
+}
+
+const fmtT = (v) => (Math.round(v * 10) / 10).toString();
+
+async function renderThresholdPane() {
+  showInvPane('inv-calib');
+  const d = $('#inv-calib');
+  d.textContent = '';
+  d.appendChild(backHead('Inventory', () => showInvPane('inv-main')));
+  d.appendChild(el('h2', 'page-title', 'Closeness ratings'));
+  d.appendChild(el('p', 'note pad',
+    'Every recipe is rated Close, Near or Rough by how far the predicted mix is from the target: ' +
+    'Value by lightness, Colour by hue and saturation. These are where the lines sit. Rate your real ' +
+    'mixes in History and, after ' + MIN_RATINGS + ' or so, this suggests where the lines should sit ' +
+    'for your eye, your light and your paints.'));
+
+  const entries = await store.history.all();
+  for (const dim of ['value', 'colour']) {
+    d.appendChild(el('div', 'section-head', DIM_LABEL[dim]));
+    const cur = thresholds[dim];
+    const pairs = ratedPairs(entries, dim);
+    const box = el('div', 'pad');
+    box.style.paddingTop = '4px';
+    box.appendChild(el('div', null,
+      'Close under ' + fmtT(cur[0]) + ', Near up to ' + fmtT(cur[1]) + ', Rough beyond.'));
+
+    if (pairs.length < MIN_RATINGS) {
+      box.appendChild(el('div', 'opt-sub',
+        pairs.length + ' of your mixes rated so far. Rate ' + (MIN_RATINGS - pairs.length) +
+        ' more in History for a suggestion.'));
+    } else {
+      const sug = fitThresholds(pairs, cur);
+      const now = agreement(pairs, cur), then = agreement(pairs, sug);
+      if (then > now && (sug[0] !== cur[0] || sug[1] !== cur[1])) {
+        const f = el('div', 'flag');
+        f.style.margin = '12px 0 0';
+        f.appendChild(el('div', null,
+          'Your ' + pairs.length + ' ratings suggest Close under ' + fmtT(sug[0]) + ', Near up to ' + fmtT(sug[1]) + '.'));
+        f.appendChild(el('div', 'opt-sub',
+          'That agrees with ' + then + ' of your ' + pairs.length + ' ratings. The lines as they are agree with ' + now + '.'));
+        const use = el('button', 'btn', 'Use these');
+        use.addEventListener('click', async () => {
+          await saveThresholds(Object.assign({}, thresholds, { [dim]: sug }));
+          toast(DIM_LABEL[dim] + ' lines updated. Saved mixes keep their ratings.');
+          renderThresholdPane();
+        });
+        f.appendChild(use);
+        box.appendChild(f);
+      } else {
+        box.appendChild(el('div', 'opt-sub',
+          'Your ' + pairs.length + ' ratings agree with these lines as well as any change would (' +
+          now + ' of ' + pairs.length + ').'));
+      }
+    }
+    box.appendChild(thresholdSliders(dim));
+    d.appendChild(box);
+  }
+
+  const dz = el('div', 'danger-zone');
+  const rs = el('button', 'btn btn-quiet', 'Reset both to 3 and 8');
+  rs.addEventListener('click', async () => {
+    await saveThresholds(JSON.parse(JSON.stringify(DEFAULT_THRESHOLDS)));
+    renderThresholdPane();
+  });
+  dz.appendChild(el('p', 'note', 'Changes apply to new recipes. Saved mixes and History keep the ratings they were given.'));
+  dz.appendChild(rs);
+  d.appendChild(dz);
+}
+
+/* Manual sliders (DESIGN.md: "Manual threshold sliders are also available").
+   Near always stays at least half a unit above Close. */
+function thresholdSliders(dim) {
+  const wrap = el('div', 'sliders');
+  const mk = (label, idx, min, max) => {
+    const f = el('div', 'field');
+    const head = el('div', 'range-head');
+    const lab = el('label', null, label);
+    const val = el('span', 'val', fmtT(thresholds[dim][idx]));
+    head.append(lab, val);
+    const r = el('input');
+    r.type = 'range'; r.min = String(min); r.max = String(max); r.step = '0.5';
+    r.value = String(thresholds[dim][idx]);
+    r.setAttribute('aria-label', DIM_LABEL[dim] + ': ' + label);
+    f.append(head, r);
+    return { f: f, r: r, val: val };
+  };
+  const a = mk('Close under', 0, 0.5, 15);
+  const b = mk('Near up to', 1, 1, 30);
+  const save = debounced(async () => {
+    await saveThresholds(Object.assign({}, thresholds, { [dim]: [parseFloat(a.r.value), parseFloat(b.r.value)] }));
+  }, 250);
+  const onMove = (which) => {
+    let c = parseFloat(a.r.value), n = parseFloat(b.r.value);
+    if (n < c + 0.5) { if (which === 'a') n = c + 0.5; else c = Math.max(0.5, n - 0.5); }
+    a.r.value = String(c); b.r.value = String(n);
+    a.val.textContent = fmtT(c); b.val.textContent = fmtT(n);
+    save();
+  };
+  a.r.addEventListener('input', () => onMove('a'));
+  b.r.addEventListener('input', () => onMove('b'));
+  wrap.append(a.f, b.f);
+  return wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Stage 2: pigment calibration
+   The procedure in DESIGN.md: 1 part paint to 4 parts Titanium White,
+   photographed in even light with a grey card in the shot.
+   -------------------------------------------------------------------------- */
+const CAL_WHITE_PARTS = 4;
+const GREY_CARD = 0.18;       /* a standard photographic grey card reflects 18% */
+
+const cal = { paintId: null, img: null, w: 0, h: 0, ctx: null, card: null, swatch: null, next: 'card' };
+
+function calWhite() {
+  const own = state.paints.find(p => p.name === 'Titanium White');
+  if (own) return { paint: own, own: true };
+  const lib = libraryByName('Titanium White');
+  return { paint: { name: lib.name, rgb: lib.referenceRgb, strength: lib.strength }, own: false };
+}
+
+/* Grey-card correction. In linear light, scale each channel so the card
+   comes out as a neutral 18% grey, and apply the same scaling to the paint.
+   That takes out both the colour cast of the light and the camera's
+   exposure in one step. Returns linear RGB and whether anything clipped. */
+function greyCorrect(swatchRgb, cardRgb) {
+  const lin = (c) => c.map(v => toLinear(v / 255));
+  const s = lin(swatchRgb), g = lin(cardRgb);
+  let clipped = false;
+  const out = s.map((v, i) => {
+    const x = v * GREY_CARD / Math.max(g[i], 1e-4);
+    if (x > 1) clipped = true;
+    return Math.min(1, x);
+  });
+  return { lin: out, clipped: clipped };
+}
+
+/* Fit the paint to the measured tint.
+   One tint gives three numbers (L*, a*, b*) and the paint has four (colour
+   and strength), so many answers fit equally well. The fit therefore prefers
+   the smallest change: strength first, since how far a paint pushes white is
+   what it controls, then the colour, nudged only as far as the remaining
+   error needs, then strength once more with the new colour. */
+function fitPaint(paint, white, measuredLab) {
+  const tint = (rgb, s) => mixToLab([
+    { paint: { rgb: rgb, strength: s }, parts: 1 },
+    { paint: white, parts: CAL_WHITE_PARTS }
+  ]);
+  const err = (rgb, s) => ciede2000(measuredLab, tint(rgb, s), false);
+  const bestStrength = (rgb, from) => {
+    let bs = from, be = err(rgb, from);
+    for (let k = 10; k <= 50; k++) {
+      const s = k / 10, e = err(rgb, s);
+      if (e < be - 1e-9) { be = e; bs = s; }
+    }
+    return bs;
+  };
+
+  const start = { rgb: paint.rgb.slice(), strength: paint.strength };
+  const before = err(start.rgb, start.strength);
+  let s = bestStrength(start.rgb, start.strength);
+
+  const refLab = rgbToLab(start.rgb);
+  const cost = (rgb) => {
+    const e = err(rgb, s);
+    return e * e + 0.02 * Math.pow(ciede2000(refLab, rgbToLab(rgb), false), 2);
+  };
+  let rgb = start.rgb.slice(), c = cost(rgb);
+  for (const step of [32, 16, 8, 4, 2, 1]) {
+    for (let guard = 0; guard < 200; guard++) {
+      let improved = false;
+      for (let ch = 0; ch < 3; ch++) {
+        for (const dir of [1, -1]) {
+          const t = rgb.slice();
+          t[ch] = Math.max(0, Math.min(255, t[ch] + dir * step));
+          if (t[ch] === rgb[ch]) continue;
+          const tc = cost(t);
+          if (tc < c - 1e-9) { rgb = t; c = tc; improved = true; }
+        }
+      }
+      if (!improved) break;
+    }
+  }
+  s = bestStrength(rgb, s);
+  return {
+    rgb: rgb, strength: s, before: before, after: err(rgb, s),
+    tintBefore: tint(start.rgb, start.strength), tintAfter: tint(rgb, s), start: start
+  };
+}
+
+function labToRgb8(lab) {
+  /* only for showing swatches: CIELAB back to 8-bit sRGB, clamped */
+  const [L, a, b] = lab;
+  const fy = (L + 16) / 116, fx = fy + a / 500, fz = fy - b / 200;
+  const inv = (f) => f > 0.2068965517 ? f * f * f : (116 * f - 16) / 903.2962962;
+  const X = inv(fx) * D65[0], Y = inv(fy) * D65[1], Z = inv(fz) * D65[2];
+  const r =  3.2404542 * X - 1.5371385 * Y - 0.4985314 * Z;
+  const g = -0.9692660 * X + 1.8760108 * Y + 0.0415560 * Z;
+  const bl = 0.0556434 * X - 0.2040259 * Y + 1.0572252 * Z;
+  return [r, g, bl].map(v => Math.round(Math.max(0, Math.min(1, toSrgb(Math.max(0, v)))) * 255));
+}
+
+async function renderCalChoose() {
+  showInvPane('inv-calib');
+  const d = $('#inv-calib');
+  d.textContent = '';
+  d.appendChild(backHead('Inventory', () => showInvPane('inv-main')));
+  d.appendChild(el('h2', 'page-title', 'Calibrate a paint'));
+  d.appendChild(el('p', 'note pad',
+    'Fits a paint’s colour and tinting strength to your own tube, from a photo of it mixed with ' +
+    'white. Worth doing first for the paints marked estimated, and for anything whose recipes keep ' +
+    'coming out wrong.'));
+  const list = state.paints.filter(p => !isWhite(p));
+  if (!list.length) {
+    d.appendChild(el('p', 'empty', 'Add some paints first.'));
+    return;
+  }
+  for (const p of list) {
+    const row = el('button', 'hrow');
+    const pair = el('div', 'pair');
+    pair.appendChild(swatchDiv(p.rgb));
+    const main = el('div', 'h-main');
+    main.appendChild(el('div', 'h-title', p.name));
+    main.appendChild(el('div', 'h-meta',
+      'Strength ' + p.strength.toFixed(1).replace('.0', '') + '  ·  ' +
+      (p.source === 'calibrated' && p.calibration ? 'calibrated ' + onDay(p.calibration.at)
+        : p.source === 'mixbox' ? 'Mixbox reference colour' : p.source)));
+    row.append(pair, main);
+    row.addEventListener('click', () => renderCalSteps(p.id));
+    d.appendChild(row);
+  }
+  d.appendChild(el('p', 'note pad', 'Whites are not listed: a white mixed with white tells the app nothing.'));
+}
+
+function renderCalSteps(id) {
+  const p = state.paints.find(x => x.id === id);
+  if (!p) return renderCalChoose();
+  Object.assign(cal, { paintId: id, img: null, card: null, swatch: null, next: 'card' });
+  showInvPane('inv-calib');
+  const d = $('#inv-calib');
+  d.textContent = '';
+  d.appendChild(backHead('Choose another paint', renderCalChoose));
+  d.appendChild(el('h2', 'page-title', 'Calibrate ' + p.name));
+
+  const ol = el('ol', 'steps');
+  for (const t of [
+    'Mix 1 part ' + p.name + ' with ' + CAL_WHITE_PARTS + ' parts Titanium White, by volume, until there are no streaks.',
+    'Spread a patch, and put a grey card beside it, so both are in the same even light. Daylight from a window, out of direct sun, is best.',
+    'Photograph them together while the paint is wet, as you would judge it on the palette. No flash, and fill most of the frame.',
+    'Choose the photo, tap the grey card, then tap the paint.'
+  ]) ol.appendChild(el('li', null, t));
+  d.appendChild(ol);
+
+  const w = calWhite();
+  d.appendChild(el('p', 'note pad', w.own
+    ? 'The prediction uses your Titanium White as it is set in your inventory.'
+    : 'Titanium White is not in your inventory, so the reference Titanium White is assumed.'));
+
+  const wrap = el('div', 'pad');
+  const btn = el('button', 'btn', 'Choose the photo');
+  const inp = el('input');
+  inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none';
+  btn.addEventListener('click', () => inp.click());
+  inp.addEventListener('change', () => {
+    const f = inp.files && inp.files[0];
+    inp.value = '';
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+      cal.img = img;
+      cal.w = Math.round(img.naturalWidth * sc);
+      cal.h = Math.round(img.naturalHeight * sc);
+      URL.revokeObjectURL(img.src);
+      renderCalSample();
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); toast('That image could not be opened.'); };
+    img.src = URL.createObjectURL(f);
+  });
+  wrap.append(btn, inp);
+  d.appendChild(wrap);
+}
+
+function renderCalSample() {
+  const p = state.paints.find(x => x.id === cal.paintId);
+  if (!p) return renderCalChoose();
+  const d = $('#inv-calib');
+  d.textContent = '';
+  d.appendChild(backHead('Start again', () => renderCalSteps(cal.paintId)));
+  d.appendChild(el('h2', 'page-title', 'Calibrate ' + p.name));
+  const prompt = el('p', 'note pad cal-prompt');
+  d.appendChild(prompt);
+
+  const stage = el('div', 'photo-stage cal-stage');
+  const cv = el('canvas');
+  cv.width = cal.w; cv.height = cal.h;
+  cal.ctx = cv.getContext('2d', { willReadFrequently: true });
+  cal.ctx.drawImage(cal.img, 0, 0, cal.w, cal.h);
+  stage.appendChild(cv);
+  d.appendChild(stage);
+
+  /* a patch of paint is bigger than a spot in a reference photo, so the
+     average is taken over a bigger disc, which also smooths brush texture */
+  const radius = Math.max(SAMPLE_RADIUS, Math.round(Math.min(cal.w, cal.h) * 0.02));
+
+  const chips = el('div', 'cal-chips');
+  const chip = (which, label) => {
+    const b = el('button', 'cal-chip');
+    b.addEventListener('click', () => { cal.next = which; refresh(); });
+    b.dataset.which = which;
+    b.dataset.label = label;
+    return b;
+  };
+  const cCard = chip('card', 'Grey card'), cPaint = chip('swatch', 'Paint');
+  chips.append(cCard, cPaint);
+  d.appendChild(chips);
+
+  const warn = el('div');
+  d.appendChild(warn);
+  const go = el('button', 'btn', 'Work out the calibration');
+  const goWrap = el('div', 'pad');
+  goWrap.appendChild(go);
+  d.appendChild(goWrap);
+  go.addEventListener('click', () => renderCalResult());
+
+  const markers = {};
+  function refresh() {
+    prompt.textContent = (cal.card && cal.swatch)
+      ? 'Both sampled. Tapping the photo again moves the ' + (cal.next === 'card' ? 'grey card' : 'paint') + ' sample.'
+      : cal.next === 'card' ? 'Tap the grey card.' : 'Now tap the paint.';
+    for (const b of [cCard, cPaint]) {
+      const s = cal[b.dataset.which];
+      b.textContent = '';
+      const sw = el('span', 'cal-chip-sw');
+      sw.style.background = s ? toHex(s.rgb) : 'transparent';
+      b.append(sw, el('span', null, b.dataset.label + (s ? '' : ' — not yet')));
+      b.setAttribute('aria-pressed', String(cal.next === b.dataset.which));
+    }
+    for (const which of ['card', 'swatch']) {
+      const s = cal[which];
+      if (!s) { if (markers[which]) { markers[which].remove(); delete markers[which]; } continue; }
+      const m = markers[which] || (markers[which] = el('div', 'pin', which === 'card' ? 'G' : 'P'));
+      m.style.left = (s.nx * cv.clientWidth) + 'px';
+      m.style.top = (s.ny * cv.clientHeight) + 'px';
+      m.style.background = toHex(s.rgb);
+      if (!m.parentNode) stage.appendChild(m);
+    }
+    warn.textContent = '';
+    if (cal.card) {
+      const c = cal.card.rgb;
+      let msg = null;
+      if (Math.max(...c) >= 250) msg = 'The grey card looks overexposed, so the correction will be off. Retake it with a little less light.';
+      else if (Math.min(...c) <= 15) msg = 'The grey card looks very dark, so the correction will be off. Retake it in brighter light.';
+      if (msg) warn.appendChild(el('div', 'dark-warn', msg));
+    }
+    go.disabled = !(cal.card && cal.swatch);
+  }
+
+  cv.addEventListener('pointerdown', (e) => {
+    const r = cv.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    const rgb = sampleDisc(cal.ctx, cal.w, cal.h, nx, ny, radius);
+    cal[cal.next] = { nx: nx, ny: ny, rgb: rgb };
+    if (cal.next === 'card' && !cal.swatch) cal.next = 'swatch';
+    refresh();
+  });
+  window.addEventListener('resize', refresh, { once: true });
+  requestAnimationFrame(refresh);
+  refresh();
+}
+
+function renderCalResult() {
+  const p = state.paints.find(x => x.id === cal.paintId);
+  if (!p || !cal.card || !cal.swatch) return renderCalChoose();
+  const white = calWhite().paint;
+  const corr = greyCorrect(cal.swatch.rgb, cal.card.rgb);
+  const measuredLab = linearToLab(corr.lin[0], corr.lin[1], corr.lin[2]);
+  const fit = fitPaint(p, white, measuredLab);
+
+  const d = $('#inv-calib');
+  d.textContent = '';
+  scrollTop();
+  d.appendChild(backHead('Retake the samples', renderCalSample));
+  d.appendChild(el('h2', 'page-title', 'Calibrate ' + p.name));
+
+  const cmp = el('div', 'compare pad');
+  cmp.style.paddingBottom = '0';
+  for (const [cap, lab] of [['Your tint', measuredLab], ['Predicted before', fit.tintBefore], ['Predicted now', fit.tintAfter]]) {
+    const col = el('div');
+    col.append(el('div', 'cap', cap));
+    const b = el('div', 'big');
+    b.style.background = toHex(labToRgb8(lab));
+    col.appendChild(b);
+    cmp.appendChild(col);
+  }
+  d.appendChild(cmp);
+
+  const lines = el('div', 'pad');
+  /* Plain numbers, not Close/Near/Rough: those words belong to the
+     closeness thresholds, which may have been tuned to mean something else. */
+  lines.appendChild(el('div', null,
+    'The tint predicted with the current values is off by ' + fit.before.toFixed(1) +
+    '. With the fitted values it is off by ' + fit.after.toFixed(1) + '.'));
+  lines.appendChild(el('div', 'opt-sub',
+    'Differences under about 1 are hard to see. Over 3 they are plain to see side by side.'));
+  const chg = el('div', 'cal-change');
+  const sw0 = swatchDiv(fit.start.rgb), sw1 = swatchDiv(fit.rgb);
+  chg.append(
+    el('div', 'opt-sub', 'Strength ' + fmtT(fit.start.strength) + '  →  ' + fmtT(fit.strength)),
+    el('div', 'cal-swatches'));
+  chg.lastChild.append(sw0, el('span', null, '→'), sw1,
+    el('span', 'opt-sub', 'Colour ' + fit.start.rgb.join(', ') + '  →  ' + fit.rgb.join(', ')));
+  lines.appendChild(chg);
+  d.appendChild(lines);
+
+  const notes = [];
+  if (corr.clipped) notes.push('After correcting for the grey card the tint came out brighter than white, so it was clipped. The card may have been in more shadow than the paint.');
+  if (fit.strength <= 1 || fit.strength >= 5) notes.push('The strength reached the end of the 1 to 5 scale. Check the tint really was 1 part to ' + CAL_WHITE_PARTS + '.');
+  if (fit.after > 3) notes.push('Even the fitted values are some way off. The light, the camera or the Titanium White itself may be skewing it, so a retake is worth trying.');
+  if (fit.after >= fit.before - 0.3) notes.push('The current values already predict this tint about as well as any change would. There is nothing much to gain.');
+  for (const n of notes) d.appendChild(el('div', 'dark-warn', n));
+
+  const acts = el('div', 'danger-zone');
+  acts.style.paddingTop = '16px';
+  const use = el('button', 'btn', 'Use these values');
+  use.addEventListener('click', async () => {
+    p.calibration = {
+      at: Date.now(),
+      measuredLab: measuredLab,
+      cardRgb: cal.card.rgb, swatchRgb: cal.swatch.rgb,
+      before: { rgb: fit.start.rgb, strength: fit.start.strength },
+      deBefore: fit.before, deAfter: fit.after,
+      white: { name: white.name, rgb: Array.from(white.rgb), strength: white.strength }
+    };
+    p.rgb = fit.rgb;
+    p.strength = fit.strength;
+    p.source = 'calibrated';
+    await store.putPaint(p);
+    await load();
+    renderInventory();
+    toast(p.name + ' calibrated. Reset it from its edit sheet at any time.');
+    showInvPane('inv-main');
+  });
+  const no = el('button', 'btn btn-quiet', 'Discard');
+  no.addEventListener('click', renderCalChoose);
+  acts.append(use, no);
+  d.appendChild(acts);
+}
+
+
+async function renderCalMeta() {
+  const all = await store.history.all();
+  const n = Math.max(ratedPairs(all, 'value').length, ratedPairs(all, 'colour').length);
+  $('#cal-thresh-meta').textContent = n
+    ? 'Tune what Close, Near and Rough mean. ' + n + (n === 1 ? ' mix' : ' mixes') + ' rated so far' +
+      (n < MIN_RATINGS ? '; a suggestion comes at about ' + MIN_RATINGS + '.' : '.')
+    : 'Tune what Close, Near and Rough mean, from how your real mixes turned out. Rate them in History.';
+}
+
 /* --- mix screen wiring -------------------------------------------------- */
 $('#btn-solve').addEventListener('click', runSolve);
 $('#btn-back').addEventListener('click', () => {
@@ -3705,6 +4342,8 @@ $('#opt-complex').addEventListener('click', async (e) => {
   await store.setSetting('complexMixes', !on);
   runSolve();
 });
+$('#btn-cal-paint').addEventListener('click', renderCalChoose);
+$('#btn-cal-thresh').addEventListener('click', renderThresholdPane);
 $('#btn-newproj').addEventListener('click', createFromChooser);
 $('#f-newproj').addEventListener('keydown', (e) => { if (e.key === 'Enter') createFromChooser(); });
 $('#btn-proj-cancel').addEventListener('click', closeSheets);
@@ -3730,6 +4369,8 @@ $('#opt-unit').addEventListener('click', async (e) => {
     const savedUnit = await store.getSetting('partsUnit');
     if (UNITS.indexOf(savedUnit) !== -1) partsUnit = savedUnit;
     $('#opt-unit').textContent = UNIT_LABEL[partsUnit];
+    const savedT = await store.getSetting('thresholds');
+    if (validThresholds(savedT)) thresholds = savedT;
     initWheel();
     initPhoto();
     const savedInput = await store.getSetting('inputMethod');
