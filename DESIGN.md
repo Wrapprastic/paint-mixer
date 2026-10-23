@@ -264,6 +264,8 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 23 Oct 2026 | A paint's colour is set in its edit sheet with the colour wheel or by sampling a photo, replacing the phone's standard colour picker that stood in until now. Opening the wheel without touching it changes nothing |
+| 23 Oct 2026 | Sampling a paint's colour from a photo also takes an optional grey card, corrected the same way as in pigment calibration. In testing, a warm, underexposed photo of a smear was 8 ΔE off without the card and 0.3 with it |
 | 23 Oct 2026 | Value and Colour each have their own Close/Near thresholds, both starting at 3 and 8. Changing them affects new recipes only; saved mixes and History keep the ratings they were given |
 | 23 Oct 2026 | Threshold calibration: each History entry has an optional Close/Near/Rough rating for Value and Colour (tap again to clear). Once a dimension has 10 ratings, the app searches every threshold pair on a half-unit grid for the one that agrees best with them, counting a disagreement by how many bands apart it is, and preferring the smallest change on a tie. A suggestion is only shown if it agrees with more ratings than the current lines. Manual sliders keep Near at least half a unit above Close |
 | 23 Oct 2026 | Pigment calibration corrects the photo with the grey card, assumed to be a standard 18% card: each channel is scaled in linear light so the card comes out neutral 18% grey, which removes both the colour of the light and the exposure. In testing this took a warm, underexposed photo from 12.5 ΔE off the true tint to 0.4 |

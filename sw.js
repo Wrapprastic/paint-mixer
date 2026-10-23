@@ -20,7 +20,7 @@
  * start-up and never fetches app files later.
  * ========================================================================= */
 
-const CACHE_VERSION = 'paint-mixer-v2';
+const CACHE_VERSION = 'paint-mixer-v3';
 
 const APP_FILES = [
   './',

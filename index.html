@@ -278,19 +278,14 @@ body {
 .input:focus { outline: 2px solid var(--text-faint); outline-offset: -2px; }
 
 .colour-field { display: flex; align-items: center; gap: 14px; }
-.colour-field input[type="color"] {
-  flex: 0 0 auto;
-  width: 62px; height: var(--tap);
-  padding: 0;
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  -webkit-appearance: none;
-  appearance: none;
-  cursor: pointer;
-}
-.colour-field input[type="color"]::-webkit-color-swatch-wrapper { padding: 3px; }
-.colour-field input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 7px; }
+.colour-field .colour-now { width: 62px; height: 62px; }
+.colour-tools { display: flex; gap: 10px; margin-top: 12px; }
+.colour-tools .btn { flex: 1 1 0; padding-left: 8px; padding-right: 8px; font-size: 15px; }
+.colour-tools .btn[aria-expanded="true"] { border-color: var(--text); }
+.colour-panel { margin-top: 12px; }
+.colour-panel #edit-wheel { display: block; width: 100%; max-width: 330px; height: auto; margin: 0 auto; touch-action: none; }
+.colour-panel .note { margin: 0 0 10px; }
+.colour-panel .photo-stage { margin: 0; }
 .colour-field .rgb { font-size: 14px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
 
 input[type="range"] {
@@ -888,14 +883,30 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
     <input class="input" id="f-name" type="text" autocapitalize="words" autocomplete="off" spellcheck="false">
   </div>
 
-  <!-- INTERIM: DESIGN.md says the reference colour is set with the colour wheel
-       or by sampling a photo of a swatch. Neither exists yet, so this is the
-       native picker for now. Replace it with the wheel when that is built. -->
+  <!-- DESIGN.md: the colour is set with the wheel or by sampling a photo of
+       a swatch. -->
   <div class="field">
-    <label for="f-colour">Reference colour</label>
+    <label>Reference colour</label>
     <div class="colour-field">
-      <input id="f-colour" type="color">
+      <div class="swatch colour-now" id="f-swatch"></div>
       <span class="rgb" id="f-rgb"></span>
+    </div>
+    <div class="colour-tools">
+      <button class="btn" id="btn-colour-wheel">Set with the wheel</button>
+      <button class="btn" id="btn-colour-photo">Sample a photo</button>
+      <input id="f-colour-photo" type="file" accept="image/*" style="display:none">
+    </div>
+    <div class="colour-panel" id="colour-wheel-panel" style="display:none">
+      <canvas id="edit-wheel" width="330" height="330"></canvas>
+    </div>
+    <div class="colour-panel" id="colour-photo-panel" style="display:none">
+      <p class="note" id="ep-prompt"></p>
+      <div class="photo-stage cal-stage" id="ep-stage"><canvas id="ep-canvas"></canvas></div>
+      <div class="cal-chips" id="ep-chips" style="padding-left:0;padding-right:0">
+        <button class="cal-chip" data-which="paint"></button>
+        <button class="cal-chip" data-which="card"></button>
+      </div>
+      <div id="ep-warn"></div>
     </div>
   </div>
 
@@ -1235,8 +1246,9 @@ function openEdit(id) {
 
   $('#edit-title').textContent = p.name;
   $('#f-name').value = p.name;
-  $('#f-colour').value = toHex(p.rgb);
-  $('#f-rgb').textContent = p.rgb.join(', ');
+  editRgb = p.rgb.slice();
+  syncEditColour();
+  closeColourPanels();
   $('#f-strength').value = p.strength;
   setStrengthLabel(p.strength);
   $('#f-opacity').value = p.opacity;
@@ -1248,7 +1260,7 @@ function openEdit(id) {
     p.source === 'mixbox'
       ? 'Reference colour is Mixbox’s published value for this pigment. Tinting strength is an estimate — no published scale exists for oil paint.'
       : p.source === 'custom'
-        ? 'Your own values. Set the colour to match your tube as closely as the screen allows.'
+        ? 'Your own values. Set the colour with the wheel, or sample a photo of a smear straight from the tube.'
         : p.source === 'calibrated' && p.calibration
           ? 'Calibrated from a photo of your own tint ' + onDay(p.calibration.at) +
             '. Reset to go back to the reference values.'
@@ -1263,7 +1275,7 @@ async function commitEdit() {
   const before = toHex(p.rgb) + '/' + p.strength;
   const name = $('#f-name').value.trim();
   if (name) p.name = name;
-  p.rgb = fromHex($('#f-colour').value);
+  p.rgb = editRgb.slice();
   p.strength = parseFloat($('#f-strength').value);
   p.opacity = $('#f-opacity').value;
   p.onHand = $('#f-onhand').getAttribute('aria-checked') === 'true';
@@ -1805,9 +1817,6 @@ $('#sheet-back').addEventListener('click', async () => {
 });
 $('#btn-done').addEventListener('click', async () => { await commitEdit(); closeSheets(); });
 
-$('#f-colour').addEventListener('input', (e) => {
-  $('#f-rgb').textContent = fromHex(e.target.value).join(', ');
-});
 $('#f-strength').addEventListener('input', (e) => setStrengthLabel(e.target.value));
 $('#f-onhand').addEventListener('click', (e) => {
   const on = e.currentTarget.getAttribute('aria-checked') === 'true';
@@ -1861,62 +1870,112 @@ function hsvToRgb(h, s, v) {
   return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
 }
 
-let wheelCtx = null, squareImage = null, squareHue = null;
+/* One wheel, usable anywhere: the Mix screen's target picker and the
+   Inventory edit sheet each get their own. `hsv` is edited in place and
+   onChange runs after every move. */
+function makeWheel(cv, hsv, onChange) {
+  let ctx = null, squareImage = null, squareHue = null, zone = null, dragging = false;
 
-function drawWheel() {
-  const cv = $('#wheel');
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
-  if (cv.width !== WHEEL.size * dpr) {
-    cv.width = WHEEL.size * dpr;
-    cv.height = WHEEL.size * dpr;
-  }
-  const ctx = wheelCtx || (wheelCtx = cv.getContext('2d'));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, WHEEL.size, WHEEL.size);
-
-  /* hue ring */
-  ctx.lineWidth = WHEEL.ring;
-  const rMid = (WHEEL.rOuter + WHEEL.rInner) / 2;
-  for (let a = 0; a < 360; a++) {
-    const rgb = hsvToRgb(a, 1, 1);
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
-    ctx.arc(WHEEL.cx, WHEEL.cy, rMid, rad(a - 0.8), rad(a + 0.8));
-    ctx.stroke();
-  }
-
-  /* saturation / brightness square, rebuilt only when the hue changes */
-  /* Built at device resolution: putImageData ignores the canvas transform and
-     writes device pixels 1:1, so building it in CSS pixels would land a square
-     of the wrong size and put the marker maths out. */
-  const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
-  const sqPx = Math.round(WHEEL.sq * dpr);
-  if (squareHue !== Math.round(target.h) || !squareImage || squareImage.width !== sqPx) {
-    squareImage = ctx.createImageData(sqPx, sqPx);
-    const d = squareImage.data;
-    for (let y = 0; y < sqPx; y++) {
-      for (let x = 0; x < sqPx; x++) {
-        const rgb = hsvToRgb(target.h, x / (sqPx - 1), 1 - y / (sqPx - 1));
-        const i = (y * sqPx + x) * 4;
-        d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255;
-      }
+  function draw() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    if (cv.width !== WHEEL.size * dpr) {
+      cv.width = WHEEL.size * dpr;
+      cv.height = WHEEL.size * dpr;
     }
-    squareHue = Math.round(target.h);
-  }
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.putImageData(squareImage, Math.round(s0 * dpr), Math.round(t0 * dpr));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx = ctx || cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, WHEEL.size, WHEEL.size);
 
-  /* markers, neutral only: a dark ring inside a light ring reads on any hue */
-  const ringMark = (x, y, r) => {
-    ctx.lineWidth = 3; ctx.strokeStyle = '#000';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-    ctx.lineWidth = 2; ctx.strokeStyle = '#fff';
-    ctx.beginPath(); ctx.arc(x, y, r - 2.5, 0, Math.PI * 2); ctx.stroke();
+    /* hue ring */
+    ctx.lineWidth = WHEEL.ring;
+    const rMid = (WHEEL.rOuter + WHEEL.rInner) / 2;
+    for (let a = 0; a < 360; a++) {
+      const rgb = hsvToRgb(a, 1, 1);
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgb(' + rgb[0] + ',' + rgb[1] + ',' + rgb[2] + ')';
+      ctx.arc(WHEEL.cx, WHEEL.cy, rMid, rad(a - 0.8), rad(a + 0.8));
+      ctx.stroke();
+    }
+
+    /* saturation / brightness square, rebuilt only when the hue changes.
+       Built at device resolution: putImageData ignores the canvas transform
+       and writes device pixels 1:1, so building it in CSS pixels would land a
+       square of the wrong size and put the marker maths out. */
+    const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
+    const sqPx = Math.round(WHEEL.sq * dpr);
+    if (squareHue !== Math.round(hsv.h) || !squareImage || squareImage.width !== sqPx) {
+      squareImage = ctx.createImageData(sqPx, sqPx);
+      const d = squareImage.data;
+      for (let y = 0; y < sqPx; y++) {
+        for (let x = 0; x < sqPx; x++) {
+          const rgb = hsvToRgb(hsv.h, x / (sqPx - 1), 1 - y / (sqPx - 1));
+          const i = (y * sqPx + x) * 4;
+          d[i] = rgb[0]; d[i + 1] = rgb[1]; d[i + 2] = rgb[2]; d[i + 3] = 255;
+        }
+      }
+      squareHue = Math.round(hsv.h);
+    }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.putImageData(squareImage, Math.round(s0 * dpr), Math.round(t0 * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    /* markers, neutral only: a dark ring inside a light ring reads on any hue */
+    const ringMark = (x, y, r) => {
+      ctx.lineWidth = 3; ctx.strokeStyle = '#000';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = 2; ctx.strokeStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x, y, r - 2.5, 0, Math.PI * 2); ctx.stroke();
+    };
+    ringMark(WHEEL.cx + Math.cos(rad(hsv.h)) * rMid, WHEEL.cy + Math.sin(rad(hsv.h)) * rMid, 13);
+    ringMark(s0 + hsv.s * (WHEEL.sq - 1), t0 + (1 - hsv.v) * (WHEEL.sq - 1), 11);
+  }
+
+  const point = (e) => {
+    const r = cv.getBoundingClientRect();
+    const scale = WHEEL.size / r.width;
+    return { x: (e.clientX - r.left) * scale, y: (e.clientY - r.top) * scale };
   };
-  ringMark(WHEEL.cx + Math.cos(rad(target.h)) * rMid, WHEEL.cy + Math.sin(rad(target.h)) * rMid, 13);
-  ringMark(s0 + target.s * (WHEEL.sq - 1), t0 + (1 - target.v) * (WHEEL.sq - 1), 11);
+  function apply(p) {
+    const dx = p.x - WHEEL.cx, dy = p.y - WHEEL.cy;
+    if (zone === null) zone = Math.hypot(dx, dy) > WHEEL.rInner ? 'ring' : 'square';
+    if (zone === 'ring') {
+      hsv.h = (deg(Math.atan2(dy, dx)) + 360) % 360;
+    } else {
+      const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
+      hsv.s = Math.max(0, Math.min(1, (p.x - s0) / (WHEEL.sq - 1)));
+      hsv.v = Math.max(0, Math.min(1, 1 - (p.y - t0) / (WHEEL.sq - 1)));
+    }
+    draw();
+    onChange();
+  }
+  cv.addEventListener('pointerdown', (e) => {
+    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+    dragging = true;
+    zone = null;
+    apply(point(e));
+  });
+  cv.addEventListener('pointermove', (e) => { if (dragging) apply(point(e)); });
+  const end = () => { dragging = false; zone = null; };
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  return { draw: draw };
 }
+
+function rgbToHsv(rgb) {
+  const [r, g, b] = rgb.map(v => v / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = 60 * (((g - b) / d) % 6);
+    else if (max === g) h = 60 * ((b - r) / d + 2);
+    else h = 60 * ((r - g) / d + 4);
+  }
+  if (h < 0) h += 360;
+  return { h: h, s: max ? d / max : 0, v: max };
+}
+
+let mixWheel = null;
+function drawWheel() { if (mixWheel) mixWheel.draw(); }
 
 function targetRgb() { return hsvToRgb(target.h, target.s, target.v); }
 
@@ -1926,41 +1985,9 @@ function syncTarget() {
   $('#target-val').textContent = rgb.join(', ') + '   ' + toHex(rgb).toUpperCase();
 }
 
-let dragZone = null;
-function wheelPoint(e) {
-  const cv = $('#wheel');
-  const r = cv.getBoundingClientRect();
-  const scale = WHEEL.size / r.width;
-  return { x: (e.clientX - r.left) * scale, y: (e.clientY - r.top) * scale };
-}
-function wheelApply(p) {
-  const dx = p.x - WHEEL.cx, dy = p.y - WHEEL.cy;
-  const dist = Math.hypot(dx, dy);
-  if (dragZone === null) dragZone = dist > WHEEL.rInner ? 'ring' : 'square';
-  if (dragZone === 'ring') {
-    target.h = (deg(Math.atan2(dy, dx)) + 360) % 360;
-  } else {
-    const s0 = WHEEL.cx - WHEEL.sq / 2, t0 = WHEEL.cy - WHEEL.sq / 2;
-    target.s = Math.max(0, Math.min(1, (p.x - s0) / (WHEEL.sq - 1)));
-    target.v = Math.max(0, Math.min(1, 1 - (p.y - t0) / (WHEEL.sq - 1)));
-  }
-  drawWheel();
-  syncTarget();
-}
-
 function initWheel() {
-  const cv = $('#wheel');
-  cv.addEventListener('pointerdown', (e) => {
-    try { cv.setPointerCapture(e.pointerId); } catch (_) {}
-    dragZone = null;
-    wheelApply(wheelPoint(e));
-  });
-  cv.addEventListener('pointermove', (e) => {
-    if (cv.hasPointerCapture(e.pointerId)) wheelApply(wheelPoint(e));
-  });
-  cv.addEventListener('pointerup', () => { dragZone = null; });
-  cv.addEventListener('pointercancel', () => { dragZone = null; });
-  drawWheel();
+  mixWheel = makeWheel($('#wheel'), target, syncTarget);
+  mixWheel.draw();
   syncTarget();
 }
 
@@ -4330,6 +4357,148 @@ async function renderCalMeta() {
     : 'Tune what Close, Near and Rough mean, from how your real mixes turned out. Rate them in History.';
 }
 
+/* ===========================================================================
+   Setting a paint's colour in the edit sheet (DESIGN.md, Paint inventory):
+   with the wheel, or by sampling a photo of a swatch. The sheet edits a copy
+   and nothing is saved until Done, the same as every other field.
+   =========================================================================== */
+let editRgb = [128, 128, 128];
+const editHsv = { h: 0, s: 0, v: 0.5 };
+let editWheel = null;
+const ep = { img: null, w: 0, h: 0, ctx: null, paint: null, card: null, next: 'paint' };
+
+function syncEditColour() {
+  $('#f-swatch').style.background = toHex(editRgb);
+  $('#f-rgb').textContent = editRgb.join(', ');
+}
+
+function closeColourPanels() {
+  $('#colour-wheel-panel').style.display = 'none';
+  $('#colour-photo-panel').style.display = 'none';
+  $('#btn-colour-wheel').setAttribute('aria-expanded', 'false');
+  $('#btn-colour-photo').setAttribute('aria-expanded', 'false');
+  $('#btn-colour-wheel').textContent = 'Set with the wheel';
+}
+
+function toggleEditWheel() {
+  const panel = $('#colour-wheel-panel');
+  const opening = panel.style.display === 'none';
+  closeColourPanels();
+  if (!opening) return;
+  /* start from the paint's colour, but change nothing until the wheel is
+     actually touched: an HSV round trip is not exact to the last unit */
+  Object.assign(editHsv, rgbToHsv(editRgb));
+  if (!editWheel) {
+    editWheel = makeWheel($('#edit-wheel'), editHsv, () => {
+      editRgb = hsvToRgb(editHsv.h, editHsv.s, editHsv.v);
+      syncEditColour();
+    });
+  }
+  panel.style.display = '';
+  $('#btn-colour-wheel').setAttribute('aria-expanded', 'true');
+  $('#btn-colour-wheel').textContent = 'Hide the wheel';
+  editWheel.draw();
+  panel.scrollIntoView({ block: 'nearest' });
+}
+
+/* A swatch photo: tap the paint, and optionally a grey card. With a card the
+   colour of the light and the exposure are taken out, exactly as in pigment
+   calibration; without one the photo is used as it is. */
+function epResult() {
+  if (!ep.paint) return;
+  if (ep.card) {
+    const c = greyCorrect(ep.paint.rgb, ep.card.rgb);
+    editRgb = c.lin.map(v => Math.round(Math.max(0, Math.min(1, toSrgb(v))) * 255));
+  } else {
+    editRgb = ep.paint.rgb.slice();
+  }
+  syncEditColour();
+}
+
+function epRefresh() {
+  const cv = $('#ep-canvas'), stage = $('#ep-stage');
+  $('#ep-prompt').textContent = !ep.paint
+    ? 'Tap the paint. A smear straight from the tube, photographed in even light, works best.'
+    : ep.next === 'card'
+      ? 'Now tap the grey card.'
+      : (ep.card ? 'Corrected for the light using the grey card. Tap again to move the paint sample.'
+                 : 'If there is a grey card in the shot, choose it below and tap it, and the colour of the light is taken out.');
+  for (const b of document.querySelectorAll('#ep-chips .cal-chip')) {
+    const which = b.dataset.which, smp = ep[which];
+    b.textContent = '';
+    const sw = el('span', 'cal-chip-sw');
+    sw.style.background = smp ? toHex(smp.rgb) : 'transparent';
+    b.append(sw, el('span', null, which === 'paint'
+      ? 'Paint' + (smp ? '' : ' — not yet')
+      : 'Grey card' + (smp ? '' : ', optional')));
+    b.setAttribute('aria-pressed', String(ep.next === which));
+  }
+  stage.querySelectorAll('.pin').forEach(m => m.remove());
+  for (const which of ['paint', 'card']) {
+    const smp = ep[which];
+    if (!smp) continue;
+    const m = el('div', 'pin', which === 'card' ? 'G' : 'P');
+    m.style.left = (smp.nx * cv.clientWidth) + 'px';
+    m.style.top = (smp.ny * cv.clientHeight) + 'px';
+    m.style.background = toHex(smp.rgb);
+    stage.appendChild(m);
+  }
+  const warn = $('#ep-warn');
+  warn.textContent = '';
+  if (ep.card) {
+    const c = ep.card.rgb;
+    let msg = null;
+    if (Math.max(...c) >= 250) msg = 'The grey card looks overexposed, so the correction will be off.';
+    else if (Math.min(...c) <= 15) msg = 'The grey card looks very dark, so the correction will be off.';
+    if (msg) warn.appendChild(el('div', 'dark-warn', msg));
+  }
+}
+
+function initEditColour() {
+  $('#btn-colour-wheel').addEventListener('click', toggleEditWheel);
+
+  const input = $('#f-colour-photo');
+  $('#btn-colour-photo').addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const f = input.files && input.files[0];
+    input.value = '';
+    if (!f) return;
+    const img = new Image();
+    img.onload = () => {
+      const sc = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+      Object.assign(ep, { img: img, paint: null, card: null, next: 'paint',
+                          w: Math.round(img.naturalWidth * sc), h: Math.round(img.naturalHeight * sc) });
+      const cv = $('#ep-canvas');
+      cv.width = ep.w; cv.height = ep.h;
+      ep.ctx = cv.getContext('2d', { willReadFrequently: true });
+      ep.ctx.drawImage(img, 0, 0, ep.w, ep.h);
+      URL.revokeObjectURL(img.src);
+      closeColourPanels();
+      $('#colour-photo-panel').style.display = '';
+      $('#btn-colour-photo').setAttribute('aria-expanded', 'true');
+      epRefresh();
+      $('#colour-photo-panel').scrollIntoView({ block: 'nearest' });
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); toast('That image could not be opened.'); };
+    img.src = URL.createObjectURL(f);
+  });
+
+  $('#ep-canvas').addEventListener('pointerdown', (e) => {
+    const cv = $('#ep-canvas');
+    const r = cv.getBoundingClientRect();
+    const nx = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const ny = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    const radius = Math.max(SAMPLE_RADIUS, Math.round(Math.min(ep.w, ep.h) * 0.02));
+    ep[ep.next] = { nx: nx, ny: ny, rgb: sampleDisc(ep.ctx, ep.w, ep.h, nx, ny, radius) };
+    if (ep.next === 'card') ep.next = 'paint';
+    epResult();
+    epRefresh();
+  });
+  document.querySelectorAll('#ep-chips .cal-chip').forEach(b => {
+    b.addEventListener('click', () => { ep.next = b.dataset.which; epRefresh(); });
+  });
+}
+
 /* --- mix screen wiring -------------------------------------------------- */
 $('#btn-solve').addEventListener('click', runSolve);
 $('#btn-back').addEventListener('click', () => {
@@ -4372,6 +4541,7 @@ $('#opt-unit').addEventListener('click', async (e) => {
     const savedT = await store.getSetting('thresholds');
     if (validThresholds(savedT)) thresholds = savedT;
     initWheel();
+    initEditColour();
     initPhoto();
     const savedInput = await store.getSetting('inputMethod');
     await setInputMethod(savedInput === 'photo' ? 'photo' : 'wheel');
