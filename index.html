@@ -538,6 +538,147 @@ input[type="range"]::-webkit-slider-thumb {
 
 .solving { padding: 34px 20px; text-align: center; color: var(--text-faint); }
 
+/* --- History, Projects: shared list and detail pieces ------------------- */
+.group-head, .section-head {
+  padding: 20px 16px 6px;
+  font-size: 12px; font-weight: 600; letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.hrow {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; min-height: 76px;
+  padding: 10px 16px;
+  background: none; border: 0; border-bottom: 1px solid var(--line-soft);
+  color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.hrow:active { background: var(--raised); }
+.hrow .pair { flex: 0 0 auto; display: flex; gap: 4px; }
+.hrow .pair > * {
+  display: block; width: 40px; height: 54px;
+  border-radius: 6px; border: 1px solid var(--line); object-fit: cover;
+}
+.h-main { flex: 1 1 auto; min-width: 0; }
+.h-title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.h-meta  { font-size: 12px; color: var(--text-faint); margin-top: 4px; line-height: 1.5; }
+.h-note  { font-size: 13px; color: var(--text-dim); margin-top: 4px;
+           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tag {
+  display: inline-block; vertical-align: 1px;
+  font-size: 11px; padding: 1px 6px; margin-left: 8px;
+  border: 1px solid var(--line); border-radius: 4px;
+  color: var(--text-dim);
+}
+.prow .strip { display: flex; gap: 3px; margin-top: 7px; flex-wrap: wrap; }
+.prow .strip > div { width: 18px; height: 18px; border-radius: 3px; border: 1px solid var(--line); }
+.prow.finished { opacity: .6; }
+
+.detail-head { padding: 10px 16px 0; }
+.detail-head .btn { width: auto; padding: 10px 16px; }
+.detail-meta { padding: 12px 16px 0; font-size: 13px; color: var(--text-faint); line-height: 1.5; }
+.detail-thumb {
+  display: block; width: 112px; height: 112px; margin: 12px 16px 0;
+  border-radius: 8px; border: 1px solid var(--line); object-fit: cover;
+}
+.page-title { margin: 14px 16px 2px; font-size: 22px; font-weight: 600; }
+textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
+.label-field { margin-top: 10px; }
+.flag {
+  margin: 4px 16px 0; padding: 13px 14px;
+  border: 1px solid var(--text-faint); border-radius: 10px;
+  background: var(--raised);
+  font-size: 14px; line-height: 1.5;
+}
+.flag .btn { margin: 12px 0 8px; }
+.danger-zone { padding: 8px 16px 26px; display: flex; flex-direction: column; gap: 10px; }
+
+.new-proj { display: flex; gap: 10px; padding: 14px 16px 8px; }
+.new-proj .input { flex: 1 1 auto; min-width: 0; }
+.new-proj .btn { width: auto; padding: 0 20px; }
+
+/* --- project mix grid --------------------------------------------------- */
+/* minmax(0, 1fr), not 1fr: a plain 1fr column will not shrink below its
+   content, and one long label with nowrap was pushing the grid past the
+   edge of the screen. */
+.mix-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 8px 16px 4px; }
+.tile {
+  position: relative;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  touch-action: pan-y;
+  -webkit-user-select: none; user-select: none;
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.tile.dragging {
+  z-index: 5;
+  border-color: var(--text);
+  box-shadow: 0 10px 26px rgba(0,0,0,.45);
+  transition: none;
+}
+.t-sw { display: flex; height: 76px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.t-sw > * { flex: 1 1 0; min-width: 0; display: block; object-fit: cover; }
+.t-label {
+  margin-top: 8px; padding-right: 40px;
+  font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.t-label.unlabelled { color: var(--text-faint); }
+.t-sub { font-size: 12px; color: var(--text-faint); margin-top: 2px; padding-right: 40px; }
+.tile .handle {
+  position: absolute; right: 0; bottom: 0;
+  width: 46px; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--text-faint);
+  touch-action: none; cursor: grab;
+}
+
+/* --- reference photos --------------------------------------------------- */
+.photos { display: flex; gap: 12px; overflow-x: auto; padding: 8px 16px 4px; }
+.pphoto { position: relative; flex: 0 0 auto; padding: 12px 12px 0 0; }
+.pphoto img {
+  display: block; height: 104px; max-width: 220px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--line); cursor: pointer;
+}
+.pphoto .x {
+  position: absolute; top: 0; right: 0;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: 50%; border: 1px solid #fff;
+  background: #000; color: #fff;
+  font-size: 17px; line-height: 30px; text-align: center; cursor: pointer;
+}
+
+/* --- storage check ------------------------------------------------------ */
+.srow {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 15px;
+}
+.srow-n { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: var(--text-dim); }
+.srow-total { font-weight: 600; border-bottom: 0; }
+
+/* --- undo toast --------------------------------------------------------- */
+.toast {
+  position: fixed; left: 16px; right: 16px;
+  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 12px);
+  z-index: 20;
+  display: none; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 8px 8px 16px;
+  background: #2e2e2e;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.toast.show { display: flex; }
+.toast button {
+  flex: 0 0 auto; min-height: 42px; padding: 0 18px;
+  font: inherit; font-size: 14px; color: var(--text);
+  background: var(--raised); border: 1px solid var(--line); border-radius: 8px;
+  cursor: pointer;
+}
+
 /* --- attribution -------------------------------------------------------- */
 .credit {
   padding: 22px 20px 8px;
@@ -561,14 +702,14 @@ input[type="range"]::-webkit-slider-thumb {
     <div class="pad">
       <button class="btn" id="btn-add">Add a paint</button>
     </div>
+    <div class="section-head">Storage</div>
+    <div id="storage"></div>
     <p class="credit">
       Mixing model by <a href="https://github.com/scrtwpns/mixbox" target="_blank" rel="noopener">Mixbox</a>,
       &copy; 2022 Secret Weapons, used under CC BY-NC 4.0 for non-commercial use.
     </p>
   </section>
 
-  <!-- Stubs only. These tabs are in DESIGN.md's four-tab layout, so the shell
-       exists now; the screens themselves come in later sessions. -->
   <section class="view active" id="view-mix">
     <!-- Target: hue ring plus a saturation/brightness square, Photoshop style. -->
     <div id="mix-target">
@@ -632,10 +773,13 @@ input[type="range"]::-webkit-slider-thumb {
     </div>
   </section>
   <section class="view" id="view-history">
-    <p class="stub">Recipes you have marked as mixed.<br>Built in a later session.</p>
+    <div id="hist-list"></div>
+    <div id="hist-detail" style="display:none"></div>
   </section>
   <section class="view" id="view-projects">
-    <p class="stub">Paintings and their saved mixes.<br>Built in a later session.</p>
+    <div id="proj-list"></div>
+    <div id="proj-page" style="display:none"></div>
+    <div id="proj-mix" style="display:none"></div>
   </section>
 </div>
 
@@ -718,6 +862,27 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 </div>
 
+<!-- Project chooser, used when saving with no active project -->
+<div class="sheet" id="sheet-project" role="dialog" aria-label="Choose a project">
+  <div class="grabber"></div>
+  <h2 id="proj-choose-title">Save to which project?</h2>
+  <div class="suggestions" id="proj-choices"></div>
+  <div class="field">
+    <label for="f-newproj">Or start a new one</label>
+    <input class="input" id="f-newproj" type="text" autocapitalize="sentences" autocomplete="off"
+           spellcheck="false" placeholder="e.g. Storm seascape">
+  </div>
+  <div class="sheet-actions">
+    <button class="btn" id="btn-newproj">Create and save</button>
+    <button class="btn btn-quiet" id="btn-proj-cancel">Cancel</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status">
+  <span id="toast-text"></span>
+  <button id="toast-undo">Undo</button>
+</div>
+
 <script src="mixbox.js"></script>
 <script src="pigments.js"></script>
 <script>
@@ -730,7 +895,7 @@ input[type="range"]::-webkit-slider-thumb {
    written so adding them is additive and does not disturb existing data.
    =========================================================================== */
 const DB_NAME = 'paint-mixer';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 let db = null;
 
 function openDb() {
@@ -748,6 +913,18 @@ function openDb() {
          when the History screen gets built. */
       if (!d.objectStoreNames.contains('history')) {
         d.createObjectStore('history', { keyPath: 'at' });
+      }
+      /* v3: projects, the mixes saved into them, and their reference photos.
+         Mixes and photos are indexed by project so a project's contents can
+         be counted and fetched without loading every photo on the device. */
+      if (!d.objectStoreNames.contains('projects')) {
+        d.createObjectStore('projects', { keyPath: 'id' });
+      }
+      if (!d.objectStoreNames.contains('mixes')) {
+        d.createObjectStore('mixes', { keyPath: 'id' }).createIndex('projectId', 'projectId');
+      }
+      if (!d.objectStoreNames.contains('photos')) {
+        d.createObjectStore('photos', { keyPath: 'id' }).createIndex('projectId', 'projectId');
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -775,10 +952,48 @@ const store = {
   allHistory: ()     => tx('history',   'readonly',  s => s.getAll())
 };
 
+/* The same five operations for every other store, plus by-project lookups. */
+function storeOf(name) {
+  return {
+    all:   ()   => tx(name, 'readonly',  s => s.getAll()),
+    get:   (k)  => tx(name, 'readonly',  s => s.get(k)),
+    put:   (v)  => tx(name, 'readwrite', s => s.put(v)),
+    del:   (k)  => tx(name, 'readwrite', s => s.delete(k)),
+    clear: ()   => tx(name, 'readwrite', s => s.clear()),
+    byProject:    (id) => tx(name, 'readonly', s => s.index('projectId').getAll(id)),
+    countProject: (id) => tx(name, 'readonly', s => s.index('projectId').count(id))
+  };
+}
+store.history  = storeOf('history');
+store.projects = storeOf('projects');
+store.mixes    = storeOf('mixes');
+store.photos   = storeOf('photos');
+
+/* A project goes with everything in it, in one transaction, so a failure
+   part-way cannot leave orphaned mixes or photos taking up space. */
+function deleteProjectAll(id) {
+  return new Promise((resolve, reject) => {
+    const t = db.transaction(['projects', 'mixes', 'photos'], 'readwrite');
+    t.objectStore('projects').delete(id);
+    for (const name of ['mixes', 'photos']) {
+      const req = t.objectStore(name).index('projectId').openKeyCursor(IDBKeyRange.only(id));
+      req.onsuccess = () => {
+        const c = req.result;
+        if (c) { t.objectStore(name).delete(c.primaryKey); c.continue(); }
+      };
+    }
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
 /* ===========================================================================
    Model
    =========================================================================== */
-const state = { paints: [], editingId: null };
+const state = { paints: [], editingId: null, projects: [], activeId: null, openProjectId: null };
 
 const slug = (name) => name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const libraryByName = (name) => PIGMENTS.find(p => p.name.toLowerCase() === String(name).toLowerCase().trim());
@@ -915,9 +1130,10 @@ function openSheet(id) {
 }
 function closeSheets() {
   $('#sheet-back').classList.remove('open');
-  $('#sheet-edit').classList.remove('open');
-  $('#sheet-add').classList.remove('open');
+  document.querySelectorAll('.sheet').forEach(s => s.classList.remove('open'));
   state.editingId = null;
+  /* a project chooser dismissed without a choice resolves as "no project" */
+  if (chooser) { const r = chooser; chooser = null; r(null); }
 }
 
 function setStrengthLabel(v) {
@@ -1467,6 +1683,9 @@ function showView(name) {
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === name)));
   $('#title').textContent = { mix: 'Mix', history: 'History', projects: 'Projects', inventory: 'Inventory' }[name];
   $('#count').style.display = name === 'inventory' ? '' : 'none';
+  if (name === 'history') renderHistory();
+  if (name === 'projects') renderProjects();
+  if (name === 'inventory') renderStorage();
 }
 
 document.querySelectorAll('.tab').forEach(t => {
@@ -1796,6 +2015,70 @@ function syncPhotoTarget() {
   }
 }
 
+/* Put a decoded image on the sampling canvas. Used for a fresh photo and for
+   a project's stored reference photo alike. */
+function useImage(img) {
+  /* Downscaled on load: a full 12MP frame is far more than sampling needs
+     and makes getImageData sluggish. */
+  const max = 1400;
+  const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  photo.img = img;
+  photo.w = Math.round(img.naturalWidth * sc);
+  photo.h = Math.round(img.naturalHeight * sc);
+  photo.pins = [];
+  drawPhoto();
+  $('#photo-empty').style.display = 'none';
+  $('#photo-stage').style.display = '';
+  $('#btn-photo').textContent = 'Choose a different photo';
+  renderPins(); syncPhotoTarget();
+}
+
+/* A small square crop around a sample point, for History and project tiles.
+   The crop is clamped inside the image rather than allowed to hang off the
+   edge, because Safari has historically drawn nothing at all for a source
+   rectangle that leaves the image; the ring moves to wherever the point is. */
+function cropThumb(nx, ny) {
+  const S = 128;
+  const side = Math.max(24, Math.round(Math.min(photo.w, photo.h) * 0.18));
+  const cx = nx * photo.w, cy = ny * photo.h;
+  const sx = Math.max(0, Math.min(photo.w - side, cx - side / 2));
+  const sy = Math.max(0, Math.min(photo.h - side, cy - side / 2));
+  const c = document.createElement('canvas'); c.width = S; c.height = S;
+  const g = c.getContext('2d');
+  g.drawImage($('#photo-canvas'), sx, sy, side, side, 0, 0, S, S);
+  const rx = (cx - sx) / side * S, ry = (cy - sy) / side * S;
+  const r = Math.max(4, SAMPLE_RADIUS * S / side) + 2;
+  g.lineWidth = 3; g.strokeStyle = '#000';
+  g.beginPath(); g.arc(rx, ry, r, 0, Math.PI * 2); g.stroke();
+  g.lineWidth = 1.5; g.strokeStyle = '#fff';
+  g.beginPath(); g.arc(rx, ry, r, 0, Math.PI * 2); g.stroke();
+  return c.toDataURL('image/jpeg', 0.8);
+}
+
+/* A reference photo for a project: longest edge 1200px (DESIGN.md), stored
+   as JPEG. Quality 0.9 rather than lower because these get re-sampled next
+   session, and heavier compression shifts colour in flat areas. */
+function encodePhoto(source, w, h) {
+  const sc = Math.min(1, 1200 / Math.max(w, h));
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * sc); c.height = Math.round(h * sc);
+  c.getContext('2d').drawImage(source, 0, 0, c.width, c.height);
+  return { url: c.toDataURL('image/jpeg', 0.9), w: c.width, h: c.height };
+}
+
+function fileToPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const out = encodePhoto(img, img.naturalWidth, img.naturalHeight);
+      URL.revokeObjectURL(img.src);
+      resolve(out);
+    };
+    img.onerror = () => { URL.revokeObjectURL(img.src); reject(new Error('unreadable image')); };
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 function initPhoto() {
   const btn = $('#btn-photo'), input = $('#photo-input'), cv = $('#photo-canvas');
   btn.addEventListener('click', () => input.click());
@@ -1804,19 +2087,7 @@ function initPhoto() {
     if (!f) return;
     const img = new Image();
     img.onload = () => {
-      /* Downscaled on load: a full 12MP frame is far more than sampling needs
-         and makes getImageData sluggish. */
-      const max = 1400;
-      const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
-      photo.img = img;
-      photo.w = Math.round(img.naturalWidth * sc);
-      photo.h = Math.round(img.naturalHeight * sc);
-      photo.pins = [];
-      drawPhoto();
-      $('#photo-empty').style.display = 'none';
-      $('#photo-stage').style.display = '';
-      btn.textContent = 'Choose a different photo';
-      renderPins(); syncPhotoTarget();
+      useImage(img);
       URL.revokeObjectURL(img.src);
     };
     img.onerror = () => {
@@ -1927,8 +2198,43 @@ function amountsFor(items) {
   return items.map((it, i) => isTouch(it) ? 'a touch' : share[i] * 5 + '%');
 }
 
+/* ---------------------------------------------------------------------------
+   Snapshots.
+   Every card is drawn from a snapshot, whether it was solved a moment ago or
+   saved to a project weeks back. One renderer for both is what makes "reopen
+   it exactly as it was" (DESIGN.md, History and Projects) true by
+   construction rather than by care: nothing on a reopened card is
+   recalculated, including the ratings, so later threshold changes cannot
+   quietly rewrite an old mix.
+   --------------------------------------------------------------------------- */
+function snapOf(result, o) {
+  if (!result) return null;
+  const rate = rateMatch(o.targetLab, result.lab, o.onHandOnly);
+  return {
+    card: o.card,
+    onHandOnly: !!o.onHandOnly,
+    targetRgb: Array.from(o.targetRgb),
+    targetLab: Array.from(o.targetLab),
+    rgb: Array.from(result.rgb),
+    lab: Array.from(result.lab),
+    de: result.de,
+    value: rate.value,
+    colour: rate.colour,
+    reasons: rate.reasons.slice(),
+    items: result.items.map(it => ({
+      name: it.paint.name,
+      parts: it.parts,
+      rgb: Array.from(it.paint.rgb),
+      buy: !!(o.buySet && o.buySet.has(it.paint.name))
+    }))
+  };
+}
+
+/* opts: title, sub, snap, deeperSnap, context ('live' | 'history' |
+   'project'), source ('wheel' | 'photo'), thumb, projectId. */
 function cardEl(opts) {
-  const { title, sub, result, targetLab, tRgb, onHandOnly, buySet, deeper, source } = opts;
+  const { title, sub, snap, deeperSnap, source, thumb } = opts;
+  const context = opts.context || 'live';
   const card = document.createElement('div');
   card.className = 'card';
 
@@ -1936,7 +2242,7 @@ function cardEl(opts) {
   const s = document.createElement('p'); s.className = 'card-sub'; s.textContent = sub;
   card.append(h, s);
 
-  if (!result) {
+  if (!snap) {
     const none = document.createElement('p');
     none.className = 'card-sub';
     none.textContent = 'No mix could be found. Add some paints to your inventory.';
@@ -1944,11 +2250,9 @@ function cardEl(opts) {
     return card;
   }
 
-  const rate = rateMatch(targetLab, result.lab, onHandOnly);
-
   /* target beside prediction */
   const cmp = document.createElement('div'); cmp.className = 'compare';
-  for (const [cap, rgb] of [['Target', tRgb], ['This mix', result.rgb]]) {
+  for (const [cap, rgb] of [['Target', snap.targetRgb], ['This mix', snap.rgb]]) {
     const col = document.createElement('div');
     const c = document.createElement('div'); c.className = 'cap'; c.textContent = cap;
     const b = document.createElement('div'); b.className = 'big'; b.style.background = toHex(rgb);
@@ -1960,16 +2264,16 @@ function cardEl(opts) {
   const vs = document.createElement('div'); vs.className = 'value-strip';
   const vc = document.createElement('div'); vc.className = 'cap'; vc.textContent = 'Value';
   const bars = document.createElement('div'); bars.className = 'bars';
-  for (const L of [targetLab[0], result.lab[0]]) {
+  for (const L of [snap.targetLab[0], snap.lab[0]]) {
     const d = document.createElement('div');
     d.style.background = toHex(greyForL(L));
     bars.appendChild(d);
   }
   vs.append(vc, bars); card.appendChild(vs);
 
-  /* the two ratings */
+  /* the two ratings, as stored */
   const rr = document.createElement('div'); rr.className = 'ratings';
-  for (const [lab, val] of [['Value', rate.value], ['Colour', rate.colour]]) {
+  for (const [lab, val] of [['Value', snap.value], ['Colour', snap.colour]]) {
     const d = document.createElement('div'); d.className = 'rating';
     const a = document.createElement('div'); a.className = 'r-lab'; a.textContent = lab;
     const b = document.createElement('div'); b.className = 'r-val'; b.textContent = val;
@@ -1977,9 +2281,9 @@ function cardEl(opts) {
   }
   card.appendChild(rr);
 
-  if (rate.reasons.length) {
+  if (snap.reasons && snap.reasons.length) {
     const ul = document.createElement('ul'); ul.className = 'reasons';
-    for (const r of rate.reasons) {
+    for (const r of snap.reasons) {
       const li = document.createElement('li'); li.textContent = r; ul.appendChild(li);
     }
     card.appendChild(ul);
@@ -1987,16 +2291,16 @@ function cardEl(opts) {
 
   /* the mix itself, in order of addition */
   const ul = document.createElement('ul'); ul.className = 'mix-list';
-  const amounts = amountsFor(result.items);
-  result.items.forEach((it, ai) => {
+  const amounts = amountsFor(snap.items);
+  snap.items.forEach((it, ai) => {
     const li = document.createElement('li');
     const pr = document.createElement('span'); pr.className = 'mix-parts'; pr.textContent = amounts[ai];
-    const nm = document.createElement('span'); nm.className = 'mix-name'; nm.textContent = it.paint.name;
-    if (buySet && buySet.has(it.paint.name)) {
+    const nm = document.createElement('span'); nm.className = 'mix-name'; nm.textContent = it.name;
+    if (it.buy) {
       const b = document.createElement('span'); b.className = 'buy'; b.textContent = 'buy';
       nm.appendChild(b);
     }
-    const sw = document.createElement('span'); sw.className = 'mix-sw'; sw.style.background = toHex(it.paint.rgb);
+    const sw = document.createElement('span'); sw.className = 'mix-sw'; sw.style.background = toHex(it.rgb);
     li.append(pr, nm, sw);
     ul.appendChild(li);
   });
@@ -2009,17 +2313,29 @@ function cardEl(opts) {
   card.appendChild(on);
 
   const acts = document.createElement('div'); acts.className = 'card-actions';
-  const mixed = document.createElement('button');
-  mixed.className = 'btn';
-  mixed.textContent = 'Mixed';
-  mixed.addEventListener('click', async () => {
-    await logMixed(title, result, tRgb, rate, source || 'wheel');
-    mixed.textContent = 'Logged to History';
-    mixed.disabled = true;
-  });
-  acts.appendChild(mixed);
 
-  if (deeper) {
+  /* A History entry has already been mixed; everywhere else it can be. */
+  if (context !== 'history') {
+    const mixed = document.createElement('button');
+    mixed.className = 'btn';
+    mixed.textContent = 'Mixed';
+    mixed.addEventListener('click', async () => {
+      const tagged = await logMixed(snap, {
+        source: source || 'wheel', thumb: thumb,
+        projectId: context === 'project' ? opts.projectId : state.activeId
+      });
+      mixed.textContent = tagged ? 'Logged to History, tagged ' + tagged.name : 'Logged to History';
+      mixed.disabled = true;
+    });
+    acts.appendChild(mixed);
+  }
+
+  /* Saving into a project makes no sense from inside that project. */
+  if (context !== 'project') {
+    acts.appendChild(saveToProjectEl(() => [{ snap: snap, thumb: thumb }]));
+  }
+
+  if (deeperSnap && context === 'live') {
     const link = document.createElement('button');
     link.className = 'linkish';
     link.textContent = 'Closer with more paints — show it';
@@ -2027,8 +2343,7 @@ function cardEl(opts) {
       link.remove();
       card.appendChild(cardEl({
         title: title + ', with more paints', sub: 'Up to 5 paints plus white.',
-        result: deeper, targetLab: targetLab, tRgb: tRgb, onHandOnly: onHandOnly,
-        buySet: buySet, source: source
+        snap: deeperSnap, context: 'live', source: source, thumb: thumb
       }));
     });
     acts.appendChild(link);
@@ -2037,17 +2352,27 @@ function cardEl(opts) {
   return card;
 }
 
-async function logMixed(cardName, result, tRgb, rate, source) {
-  await store.addHistory({
-    at: Date.now(),
-    source: source,
-    card: cardName,
-    targetRgb: tRgb.slice(),
-    predictedRgb: result.rgb.slice(),
-    recipe: result.items.map(it => ({ name: it.paint.name, parts: it.parts, rgb: it.paint.rgb.slice() })),
-    value: rate.value,
-    colour: rate.colour
+/* History keys on the timestamp, so two taps inside the same millisecond
+   must not collide and silently overwrite each other. */
+let lastLoggedAt = 0;
+
+/* Returns the project the entry was tagged to, if any. DESIGN.md: while a
+   project is active, recipes marked Mixed are tagged to it. A mix reopened
+   from a project is tagged to that project instead, which is the one you are
+   evidently working on. */
+async function logMixed(snap, o) {
+  const at = Math.max(Date.now(), lastLoggedAt + 1);
+  lastLoggedAt = at;
+  const proj = o.projectId ? state.projects.find(p => p.id === o.projectId) : null;
+  await store.history.put({
+    at: at,
+    source: o.source,
+    snap: snap,
+    thumb: o.thumb || null,
+    note: '',
+    projectId: proj ? proj.id : null
   });
+  return proj;
 }
 
 /* One target's On hand answer. Kept separate from Best match so that a photo
@@ -2111,9 +2436,11 @@ async function runSolve() {
   const complex = $('#opt-complex').getAttribute('aria-checked') === 'true';
   const cap = complex ? 5 : 3;
 
+  /* Photo targets carry a crop around their pin, made now while this photo
+     is still the one on the canvas, for History and project tiles. */
   const targets = (inputMethod === 'photo' && photo.pins.length)
-    ? photo.pins.map((p, i) => ({ label: 'Spot ' + (i + 1), rgb: p.rgb.slice() }))
-    : [{ label: 'Target', rgb: targetRgb() }];
+    ? photo.pins.map((p, i) => ({ label: 'Spot ' + (i + 1), rgb: p.rgb.slice(), thumb: cropThumb(p.nx, p.ny) }))
+    : [{ label: 'Target', rgb: targetRgb(), thumb: null }];
 
   const t0 = performance.now();
   for (const t of targets) {
@@ -2191,6 +2518,29 @@ async function renderRecipe() {
     holder.appendChild(strip);
   }
 
+  /* DESIGN.md: "Save all to project" stores every pin's recipe plus the
+     photo in one go. It saves each spot's On hand mix, since that is the one
+     you can mix next session without buying anything. */
+  if (source === 'photo') {
+    const n = targets.length;
+    const wrap = document.createElement('div');
+    wrap.className = 'pad';
+    wrap.style.paddingBottom = '0';
+    wrap.appendChild(saveToProjectEl(
+      () => targets
+        .map(x => ({
+          snap: snapOf(x.onHandResult, { card: x.label + ' — on hand', targetRgb: x.rgb, targetLab: x.lab, onHandOnly: true }),
+          thumb: x.thumb
+        }))
+        .filter(x => x.snap),
+      {
+        withPhoto: true, noLabel: true,
+        text: (a) => (n > 1 ? 'Save all ' + n + ' spots' : 'Save this spot') + ' and the photo to ' + (a ? a.name : 'a project'),
+        doneText: (proj, saved) => 'Saved ' + saved.length + (saved.length === 1 ? ' mix' : ' mixes') + ' and the photo to ' + proj.name
+      }));
+    holder.appendChild(wrap);
+  }
+
   const t = targets[lastSolve.selected];
 
   /* Best match is solved on demand for multi-spot photos. */
@@ -2200,23 +2550,26 @@ async function renderRecipe() {
     t.buySet = b.buySet;
   }
 
+  const onTitle = targets.length > 1 ? t.label + ' — on hand' : 'On hand';
   holder.appendChild(cardEl({
-    title: targets.length > 1 ? t.label + ' — on hand' : 'On hand',
+    title: onTitle,
     sub: 'Only paints you have marked as on hand.',
-    result: t.onHandResult, targetLab: t.lab, tRgb: t.rgb,
-    onHandOnly: true, deeper: t.deeper, source: source
+    snap: snapOf(t.onHandResult, { card: onTitle, targetRgb: t.rgb, targetLab: t.lab, onHandOnly: true }),
+    deeperSnap: snapOf(t.deeper, { card: onTitle + ', with more paints', targetRgb: t.rgb, targetLab: t.lab, onHandOnly: true }),
+    context: 'live', source: source, thumb: t.thumb
   }));
 
   const sameAsOnHand = t.bestResult && t.onHandResult &&
     t.bestResult.items.every(it => t.haveNames.has(it.paint.name)) &&
     Math.abs(t.bestResult.de - t.onHandResult.de) < 0.3;
+  const bestTitle = targets.length > 1 ? t.label + ' — best match' : 'Best match';
   holder.appendChild(cardEl({
-    title: targets.length > 1 ? t.label + ' — best match' : 'Best match',
+    title: bestTitle,
     sub: sameAsOnHand
       ? 'Nothing in the reference library would get you closer than what you already own.'
       : 'Includes paints you would need to buy.',
-    result: t.bestResult, targetLab: t.lab, tRgb: t.rgb,
-    onHandOnly: false, buySet: t.buySet, source: source
+    snap: snapOf(t.bestResult, { card: bestTitle, targetRgb: t.rgb, targetLab: t.lab, onHandOnly: false, buySet: t.buySet }),
+    context: 'live', source: source, thumb: t.thumb
   }));
 
   const timing = document.createElement('p');
@@ -2224,6 +2577,826 @@ async function renderRecipe() {
   timing.style.padding = '0 16px 8px';
   timing.textContent = 'Solved in ' + elapsed + ' ms.';
   holder.appendChild(timing);
+}
+
+/* ===========================================================================
+   Small shared pieces
+   =========================================================================== */
+const fmtBytes = (n) => n < 1024 ? n + ' bytes'
+  : n < 1048576 ? Math.round(n / 1024) + ' KB'
+  : (n / 1048576).toFixed(1) + ' MB';
+
+function listJoin(names) {
+  if (names.length < 2) return names.join('');
+  return names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1];
+}
+
+function dayLabel(t) {
+  const d = new Date(t), now = new Date();
+  const start = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((start(now) - start(d)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric'
+  });
+}
+const timeLabel = (t) => new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+const scrollTop = () => { $('.views').scrollTop = 0; };
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function swatchDiv(rgb) {
+  const d = el('div');
+  d.style.background = toHex(rgb);
+  return d;
+}
+
+function thumbOrSwatch(thumb, rgb) {
+  if (!thumb) return swatchDiv(rgb);
+  const i = el('img');
+  i.src = thumb;
+  i.alt = '';
+  return i;
+}
+
+/* Undo instead of "are you sure": DESIGN.md rules out flow-breaking prompts,
+   so small deletions happen at once and can be taken back for a few seconds. */
+let toastTimer = null;
+function toast(text, undo) {
+  $('#toast-text').textContent = text;
+  const b = $('#toast-undo');
+  b.style.display = undo ? '' : 'none';
+  b.onclick = async () => { hideToast(); if (undo) await undo(); };
+  $('#toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 6000);
+}
+function hideToast() { $('#toast').classList.remove('show'); }
+
+/* The one confirmation DESIGN.md asks for (deleting a project, and clearing
+   all of History) is a second tap on the same button, not a dialog. */
+function confirmButton(btn, label, armedLabel, action) {
+  let armed = false, tm = null;
+  btn.textContent = label;
+  btn.addEventListener('click', async () => {
+    if (!armed) {
+      armed = true;
+      btn.textContent = armedLabel;
+      tm = setTimeout(() => { armed = false; btn.textContent = label; }, 4000);
+      return;
+    }
+    clearTimeout(tm);
+    btn.disabled = true;
+    await action();
+  });
+  return btn;
+}
+
+function debounced(fn, ms) {
+  let tm = null;
+  const f = (...a) => { clearTimeout(tm); tm = setTimeout(() => fn(...a), ms); };
+  f.flush = (...a) => { clearTimeout(tm); fn(...a); };
+  return f;
+}
+
+function backHead(label, onBack) {
+  const h = el('div', 'detail-head');
+  const b = el('button', 'btn', label);
+  b.addEventListener('click', onBack);
+  h.appendChild(b);
+  return h;
+}
+
+/* ===========================================================================
+   Projects: model
+   =========================================================================== */
+async function loadProjects() {
+  state.projects = (await store.projects.all()).sort((a, b) => a.created - b.created);
+  const id = await store.getSetting('activeProject');
+  state.activeId = state.projects.some(p => p.id === id && !p.finished) ? id : null;
+}
+
+const activeProject = () => state.projects.find(p => p.id === state.activeId) || null;
+
+async function setActive(id) {
+  state.activeId = id || null;
+  await store.setSetting('activeProject', state.activeId);
+  refreshSaveButtons();
+}
+
+/* Save buttons already on screen relabel themselves when the active project
+   changes, so a card never says "Save to a project" when it would in fact
+   save straight into one. */
+function refreshSaveButtons() {
+  document.querySelectorAll('[data-saveproj]').forEach(b => { if (!b.disabled && b._relabel) b._relabel(); });
+}
+
+/* A new project becomes the active one if nothing else is. Making a project
+   is a strong sign you are about to save into it, and it turns the next
+   Save into the one-tap version. */
+async function createProject(name) {
+  const p = { id: newId(), name: name.trim(), created: Date.now(), finished: false };
+  await store.projects.put(p);
+  await loadProjects();
+  if (!state.activeId) await setActive(p.id);
+  return p;
+}
+
+async function saveMixes(proj, items, withPhoto) {
+  const existing = await store.mixes.byProject(proj.id);
+  let order = existing.reduce((m, x) => Math.max(m, x.order), -1) + 1;
+  const saved = [];
+  for (const it of items) {
+    const m = {
+      id: newId(), projectId: proj.id, label: '', order: order++,
+      created: Date.now(), snap: it.snap, thumb: it.thumb || null
+    };
+    await store.mixes.put(m);
+    saved.push(m);
+  }
+  if (withPhoto && photo.img) {
+    const ph = encodePhoto($('#photo-canvas'), photo.w, photo.h);
+    await store.photos.put({ id: newId(), projectId: proj.id, created: Date.now(), url: ph.url, w: ph.w, h: ph.h });
+  }
+  return saved;
+}
+
+/* DESIGN.md: while a project is active, every recipe card shows a one-tap
+   Save to project. With none active the same button asks which project,
+   once, and the one chosen becomes active so the next save is one tap. */
+function saveToProjectEl(getItems, o) {
+  o = o || {};
+  const wrap = el('div');
+  const btn = el('button', 'btn');
+  btn.dataset.saveproj = '1';
+  btn._relabel = () => {
+    const a = activeProject();
+    btn.textContent = o.text ? o.text(a) : (a ? 'Save to ' + a.name : 'Save to a project');
+  };
+  btn._relabel();
+  btn.addEventListener('click', async () => {
+    let proj = activeProject();
+    if (!proj) {
+      const id = await chooseProject();
+      if (!id) return;
+      proj = state.projects.find(p => p.id === id);
+      if (!proj) return;
+    }
+    btn.disabled = true;
+    const saved = await saveMixes(proj, getItems(), o.withPhoto);
+    btn.textContent = o.doneText ? o.doneText(proj, saved) : 'Saved to ' + proj.name;
+    if (saved.length === 1 && !o.noLabel) {
+      const f = el('input', 'input label-field');
+      f.type = 'text';
+      f.placeholder = 'Label, if you want one — e.g. sky shadow';
+      f.setAttribute('aria-label', 'Label for this mix');
+      const save = debounced(async () => { saved[0].label = f.value.trim(); await store.mixes.put(saved[0]); }, 300);
+      f.addEventListener('input', () => save());
+      f.addEventListener('blur', () => save.flush());
+      wrap.appendChild(f);
+    }
+  });
+  wrap.prepend(btn);
+  return wrap;
+}
+
+let chooser = null;
+function chooseProject() {
+  return new Promise((resolve) => {
+    const box = $('#proj-choices');
+    box.textContent = '';
+    const open = state.projects.filter(p => !p.finished).slice().reverse();
+    for (const p of open) {
+      const b = el('button', 'sug');
+      const m = el('div', 'sug-main');
+      m.appendChild(el('div', 'sug-name', p.name));
+      b.appendChild(m);
+      b.addEventListener('click', () => finishChoice(p.id));
+      box.appendChild(b);
+    }
+    $('#proj-choose-title').textContent = open.length ? 'Save to which project?' : 'Start a project to save into';
+    $('#f-newproj').value = '';
+    openSheet('#sheet-project');
+    chooser = resolve;
+  });
+}
+
+async function finishChoice(id) {
+  const r = chooser;
+  chooser = null;
+  closeSheets();
+  if (id) await setActive(id);
+  if (r) r(id);
+}
+
+async function createFromChooser() {
+  const name = $('#f-newproj').value.trim();
+  if (!name) { $('#f-newproj').focus(); return; }
+  const p = await createProject(name);
+  await finishChoice(p.id);
+}
+
+/* ===========================================================================
+   History
+   =========================================================================== */
+/* Entries logged before snapshots existed carry the old flat fields. They
+   only ever existed in development builds, but reading them costs nothing. */
+function normaliseHistory(e) {
+  if (!e || e.snap) return e;
+  return {
+    at: e.at, source: e.source || 'wheel', thumb: null, note: e.note || '', projectId: e.projectId || null,
+    snap: {
+      card: e.card || 'On hand', onHandOnly: true,
+      targetRgb: e.targetRgb, targetLab: rgbToLab(e.targetRgb),
+      rgb: e.predictedRgb, lab: rgbToLab(e.predictedRgb), de: null,
+      value: e.value, colour: e.colour, reasons: [],
+      items: (e.recipe || []).map(r => ({ name: r.name, parts: r.parts, rgb: r.rgb, buy: false }))
+    }
+  };
+}
+
+async function renderHistory() {
+  $('#hist-detail').style.display = 'none';
+  const list = $('#hist-list');
+  list.style.display = '';
+  list.textContent = '';
+
+  const all = (await store.history.all()).map(normaliseHistory).sort((a, b) => b.at - a.at);
+  if (!all.length) {
+    const p = el('p', 'empty', 'Nothing mixed yet.\nTap Mixed on a recipe card and it lands here.');
+    p.style.whiteSpace = 'pre-line';
+    list.appendChild(p);
+    return;
+  }
+
+  let day = null;
+  for (const e of all) {
+    const k = new Date(e.at).toDateString();
+    if (k !== day) { day = k; list.appendChild(el('div', 'group-head', dayLabel(e.at))); }
+
+    const row = el('button', 'hrow');
+    const pair = el('div', 'pair');
+    pair.append(thumbOrSwatch(e.thumb, e.snap.targetRgb), swatchDiv(e.snap.rgb));
+
+    const main = el('div', 'h-main');
+    main.appendChild(el('div', 'h-title', e.snap.items.map(i => i.name).join(', ')));
+    const meta = el('div', 'h-meta',
+      timeLabel(e.at) + '  ·  ' + (e.source === 'photo' ? 'Photo' : 'Wheel') +
+      '  ·  Value ' + e.snap.value + ', Colour ' + e.snap.colour);
+    const proj = e.projectId && state.projects.find(p => p.id === e.projectId);
+    if (proj) meta.appendChild(el('span', 'tag', proj.name));
+    main.appendChild(meta);
+    if (e.note) main.appendChild(el('div', 'h-note', e.note));
+
+    row.append(pair, main);
+    row.addEventListener('click', () => openHistoryEntry(e.at));
+    list.appendChild(row);
+  }
+
+  const dz = el('div', 'danger-zone');
+  dz.style.paddingTop = '22px';
+  dz.appendChild(confirmButton(el('button', 'btn btn-quiet btn-danger'),
+    'Clear all history',
+    'Tap again to delete all ' + all.length + (all.length === 1 ? ' entry' : ' entries'),
+    async () => { await store.history.clear(); renderHistory(); }));
+  list.appendChild(dz);
+}
+
+async function openHistoryEntry(at) {
+  const e = normaliseHistory(await store.history.get(at));
+  if (!e) return renderHistory();
+  $('#hist-list').style.display = 'none';
+  const d = $('#hist-detail');
+  d.style.display = '';
+  d.textContent = '';
+  scrollTop();
+
+  d.appendChild(backHead('All history', renderHistory));
+  const proj = e.projectId && state.projects.find(p => p.id === e.projectId);
+  d.appendChild(el('div', 'detail-meta',
+    dayLabel(e.at) + ', ' + timeLabel(e.at) + '  ·  from the ' +
+    (e.source === 'photo' ? 'photo' : 'colour wheel') + (proj ? '  ·  ' + proj.name : '')));
+  if (e.thumb) {
+    const i = el('img', 'detail-thumb');
+    i.src = e.thumb; i.alt = 'Where the colour was sampled';
+    d.appendChild(i);
+  }
+
+  d.appendChild(cardEl({
+    title: e.snap.card, sub: 'Exactly as it was when you mixed it.',
+    snap: e.snap, context: 'history', source: e.source, thumb: e.thumb
+  }));
+
+  const nf = el('div', 'pad');
+  const fld = el('div', 'field');
+  const lab = el('label', null, 'Note');
+  lab.htmlFor = 'f-note';
+  const ta = el('textarea', 'input');
+  ta.id = 'f-note';
+  ta.placeholder = 'Anything worth remembering — e.g. needed a touch more white on the canvas';
+  ta.value = e.note || '';
+  const save = debounced(async () => { e.note = ta.value.trim(); await store.history.put(e); }, 400);
+  ta.addEventListener('input', () => save());
+  ta.addEventListener('blur', () => save.flush());
+  fld.append(lab, ta); nf.appendChild(fld);
+  d.appendChild(nf);
+
+  const dz = el('div', 'danger-zone');
+  const del = el('button', 'btn btn-quiet btn-danger', 'Delete this entry');
+  del.addEventListener('click', async () => {
+    await store.history.del(e.at);
+    toast('Entry deleted', async () => { await store.history.put(e); renderHistory(); });
+    renderHistory();
+  });
+  dz.appendChild(del);
+  d.appendChild(dz);
+}
+
+/* ===========================================================================
+   Projects: screens
+   =========================================================================== */
+function showProjectPane(which) {
+  for (const id of ['proj-list', 'proj-page', 'proj-mix']) {
+    $('#' + id).style.display = id === which ? '' : 'none';
+  }
+  scrollTop();
+}
+
+async function renderProjects() {
+  await loadProjects();
+  showProjectPane('proj-list');
+  const list = $('#proj-list');
+  list.textContent = '';
+
+  const np = el('div', 'new-proj');
+  const inp = el('input', 'input');
+  inp.type = 'text';
+  inp.placeholder = 'New project, e.g. Storm seascape';
+  inp.setAttribute('aria-label', 'New project name');
+  inp.autocapitalize = 'sentences';
+  const mk = el('button', 'btn', 'Create');
+  const create = async () => {
+    const name = inp.value.trim();
+    if (!name) { inp.focus(); return; }
+    const p = await createProject(name);
+    openProject(p.id);
+  };
+  mk.addEventListener('click', create);
+  inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') create(); });
+  np.append(inp, mk);
+  list.appendChild(np);
+
+  if (!state.projects.length) {
+    list.appendChild(el('p', 'empty',
+      'A project is a painting. The mixes you save for it and the photo you are working from live here, so the next session starts where this one stopped.'));
+    return;
+  }
+
+  const open = state.projects.filter(p => !p.finished).slice().reverse();
+  const done = state.projects.filter(p => p.finished).slice().reverse();
+  for (const p of open) list.appendChild(await projectRow(p));
+  if (done.length) {
+    list.appendChild(el('div', 'section-head', 'Finished'));
+    for (const p of done) list.appendChild(await projectRow(p));
+  }
+}
+
+async function projectRow(p) {
+  const mixes = (await store.mixes.byProject(p.id)).sort((a, b) => a.order - b.order);
+  const nPhotos = await store.photos.countProject(p.id);
+  const row = el('button', 'hrow prow' + (p.finished ? ' finished' : ''));
+  const main = el('div', 'h-main');
+  const title = el('div', 'h-title', p.name);
+  if (p.id === state.activeId) title.appendChild(el('span', 'tag', 'Active'));
+  main.appendChild(title);
+  main.appendChild(el('div', 'h-meta',
+    mixes.length + (mixes.length === 1 ? ' mix' : ' mixes') + '  ·  ' +
+    nPhotos + (nPhotos === 1 ? ' photo' : ' photos')));
+  if (mixes.length) {
+    const strip = el('div', 'strip');
+    for (const m of mixes.slice(0, 10)) strip.appendChild(swatchDiv(m.snap.rgb));
+    main.appendChild(strip);
+  }
+  row.appendChild(main);
+  row.addEventListener('click', () => openProject(p.id));
+  return row;
+}
+
+async function openProject(id) {
+  await loadProjects();
+  const p = state.projects.find(x => x.id === id);
+  if (!p) return renderProjects();
+  state.openProjectId = id;
+  showProjectPane('proj-page');
+  const pg = $('#proj-page');
+  pg.textContent = '';
+
+  pg.appendChild(backHead('All projects', renderProjects));
+  pg.appendChild(el('h2', 'page-title', p.name + (p.finished ? '  (finished)' : '')));
+
+  if (!p.finished) {
+    const opt = el('div', 'opts');
+    const row = el('div', 'opt-row');
+    const txt = el('div');
+    txt.append(el('div', 'opt-label', 'Active project'),
+               el('div', 'opt-sub', 'Recipe cards save here in one tap, and anything you mark Mixed is tagged to it.'));
+    const sw = el('button', 'switch');
+    sw.setAttribute('role', 'switch');
+    sw.setAttribute('aria-label', 'Active project');
+    sw.setAttribute('aria-checked', String(state.activeId === id));
+    sw.addEventListener('click', async () => {
+      const on = state.activeId === id;
+      await setActive(on ? null : id);
+      sw.setAttribute('aria-checked', String(!on));
+    });
+    row.append(txt, sw);
+    opt.appendChild(row);
+    pg.appendChild(opt);
+  }
+
+  /* mixes */
+  pg.appendChild(el('div', 'section-head', 'Mixes'));
+  const mixes = (await store.mixes.byProject(id)).sort((a, b) => a.order - b.order);
+  if (!mixes.length) {
+    pg.appendChild(el('p', 'note pad',
+      'Nothing saved yet. Use Save to project on any recipe card, or Save all after sampling a photo.'));
+  } else {
+    const grid = el('div', 'mix-grid');
+    for (const m of mixes) {
+      grid.appendChild(tileEl(m, grid,
+        () => openProjectMix(m.id),
+        async () => {
+          await store.mixes.del(m.id);
+          toast('Mix deleted', async () => { await store.mixes.put(m); openProject(id); });
+          openProject(id);
+        }));
+    }
+    pg.appendChild(grid);
+    pg.appendChild(el('p', 'note pad', 'Drag the handle to reorder. Swipe a mix sideways to delete it.'));
+  }
+
+  /* reference photos */
+  pg.appendChild(el('div', 'section-head', 'Reference photos'));
+  const photos = (await store.photos.byProject(id)).sort((a, b) => a.created - b.created);
+  if (photos.length) {
+    const row = el('div', 'photos');
+    for (const ph of photos) {
+      const box = el('div', 'pphoto');
+      const img = el('img');
+      img.src = ph.url;
+      img.alt = 'Reference photo';
+      img.addEventListener('click', () => useProjectPhoto(ph));
+      const x = el('button', 'x', '×');
+      x.setAttribute('aria-label', 'Delete this photo');
+      x.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await store.photos.del(ph.id);
+        toast('Photo deleted', async () => { await store.photos.put(ph); openProject(id); });
+        openProject(id);
+      });
+      box.append(img, x);
+      row.appendChild(box);
+    }
+    pg.appendChild(row);
+    pg.appendChild(el('p', 'note pad', 'Tap a photo to sample it again.'));
+  } else {
+    pg.appendChild(el('p', 'note pad',
+      'Attach the photo you are painting from, so you can sample it again next session without hunting for it.'));
+  }
+  const addWrap = el('div', 'pad');
+  const addBtn = el('button', 'btn', 'Add reference photos');
+  const fin = el('input');
+  fin.type = 'file'; fin.accept = 'image/*'; fin.multiple = true; fin.style.display = 'none';
+  addBtn.addEventListener('click', () => fin.click());
+  fin.addEventListener('change', async () => {
+    const files = [...(fin.files || [])];
+    if (!files.length) return;
+    addBtn.disabled = true;
+    addBtn.textContent = 'Adding…';
+    let failed = 0;
+    for (const f of files) {
+      try {
+        const ph = await fileToPhoto(f);
+        await store.photos.put({ id: newId(), projectId: id, created: Date.now(), url: ph.url, w: ph.w, h: ph.h });
+      } catch (_) { failed++; }
+    }
+    if (failed) toast(failed === 1 ? 'One image could not be opened.' : failed + ' images could not be opened.');
+    openProject(id);
+  });
+  addWrap.append(addBtn, fin);
+  pg.appendChild(addWrap);
+
+  /* finish or delete */
+  const dz = el('div', 'danger-zone');
+  const fb = el('button', 'btn btn-quiet', p.finished ? 'Reopen project' : 'Mark finished');
+  fb.addEventListener('click', async () => {
+    p.finished = !p.finished;
+    await store.projects.put(p);
+    if (p.finished && state.activeId === id) await setActive(null);
+    openProject(id);
+  });
+  const what = [];
+  if (mixes.length) what.push(mixes.length + (mixes.length === 1 ? ' mix' : ' mixes'));
+  if (photos.length) what.push(photos.length + (photos.length === 1 ? ' photo' : ' photos'));
+  dz.append(fb, confirmButton(el('button', 'btn btn-quiet btn-danger'),
+    'Delete project',
+    'Tap again to delete ' + p.name + (what.length ? ' and its ' + listJoin(what) : ''),
+    async () => {
+      await deleteProjectAll(id);
+      if (state.activeId === id) await setActive(null);
+      toast('Deleted ' + p.name);
+      renderProjects();
+    }));
+  pg.appendChild(dz);
+}
+
+/* A grid tile. Swiping sideways deletes; dragging the handle reorders.
+   Reordering lives on a handle rather than a long press because a long press
+   cannot claim the gesture from the page scroll once it has started on iOS,
+   and the handle can opt out of scrolling from the first touch. */
+function tileEl(m, grid, onOpen, onDelete) {
+  const t = el('div', 'tile');
+  t.dataset.id = m.id;
+  t.setAttribute('role', 'button');
+  t.tabIndex = 0;
+
+  const sw = el('div', 't-sw');
+  sw.append(thumbOrSwatch(m.thumb, m.snap.targetRgb), swatchDiv(m.snap.rgb));
+  const lab = el('div', 't-label' + (m.label ? '' : ' unlabelled'), m.label || 'Unlabelled');
+  const sub = el('div', 't-sub', 'Value ' + m.snap.value + ', Colour ' + m.snap.colour);
+  const handle = el('div', 'handle', '⠿');
+  handle.setAttribute('aria-label', 'Drag to reorder');
+  t.append(sw, lab, sub, handle);
+
+  /* --- swipe to delete --- */
+  let x0 = 0, y0 = 0, dx = 0, mode = null, pid = null, swiped = false;
+  t.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.handle')) return;
+    x0 = e.clientX; y0 = e.clientY; dx = 0; mode = 'maybe'; pid = e.pointerId;
+  });
+  t.addEventListener('pointermove', (e) => {
+    if (!mode || e.pointerId !== pid) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (mode === 'maybe') {
+      if (Math.abs(mx) > 12 && Math.abs(mx) > Math.abs(my) * 1.3) {
+        mode = 'swipe';
+        try { t.setPointerCapture(pid); } catch (_) {}
+      } else if (Math.abs(my) > 12) { mode = null; return; }
+    }
+    if (mode === 'swipe') {
+      dx = mx;
+      t.style.transform = 'translateX(' + dx + 'px)';
+      t.style.opacity = String(Math.max(0.2, 1 - Math.abs(dx) / 220));
+    }
+  });
+  const snapBack = () => { t.style.transform = ''; t.style.opacity = ''; };
+  t.addEventListener('pointerup', async () => {
+    if (mode === 'swipe') {
+      swiped = true;
+      setTimeout(() => { swiped = false; }, 350);
+      if (Math.abs(dx) > 90) {
+        t.style.transform = 'translateX(' + (dx < 0 ? -420 : 420) + 'px)';
+        t.style.opacity = '0';
+        mode = null;
+        await onDelete();
+        return;
+      }
+      snapBack();
+    }
+    mode = null;
+  });
+  t.addEventListener('pointercancel', () => { if (mode === 'swipe') snapBack(); mode = null; });
+  t.addEventListener('click', (e) => {
+    if (swiped || e.target.closest('.handle')) return;
+    onOpen();
+  });
+  t.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } });
+
+  /* --- drag the handle to reorder ---
+     The dragged tile never leaves the DOM: its neighbours are moved around
+     it instead. Moving the dragged node itself would release the pointer
+     capture and drop the drag mid-gesture. */
+  let dpid = null, offX = 0, offY = 0;
+  handle.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dpid = e.pointerId;
+    try { handle.setPointerCapture(dpid); } catch (_) {}
+    const r = t.getBoundingClientRect();
+    offX = e.clientX - r.left; offY = e.clientY - r.top;
+    t.classList.add('dragging');
+  });
+  handle.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== dpid) return;
+    t.style.transform = '';
+    const kids = [...grid.children];
+    const from = kids.indexOf(t);
+    for (let to = 0; to < kids.length; to++) {
+      if (to === from) continue;
+      const r = kids[to].getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        if (to > from) { for (let k = from + 1; k <= to; k++) t.before(kids[k]); }
+        else { for (let k = from - 1; k >= to; k--) t.after(kids[k]); }
+        break;
+      }
+    }
+    const r = t.getBoundingClientRect();
+    t.style.transform = 'translate(' + (e.clientX - offX - r.left) + 'px,' + (e.clientY - offY - r.top) + 'px)';
+  });
+  const drop = async (e) => {
+    if (e.pointerId !== dpid) return;
+    dpid = null;
+    t.classList.remove('dragging');
+    t.style.transform = '';
+    const ids = [...grid.children].map(x => x.dataset.id);
+    for (let i = 0; i < ids.length; i++) {
+      const mm = await store.mixes.get(ids[i]);
+      if (mm && mm.order !== i) { mm.order = i; await store.mixes.put(mm); }
+    }
+  };
+  handle.addEventListener('pointerup', drop);
+  handle.addEventListener('pointercancel', drop);
+  return t;
+}
+
+/* DESIGN.md: if a saved recipe uses a paint no longer on hand, say so and
+   offer to recalculate. Paints marked "buy" in a Best match snapshot were
+   never on hand, so they are not counted as missing. */
+function inventoryGaps(snap) {
+  const byName = new Map(state.paints.map(p => [p.name, p]));
+  const gone = [], off = [];
+  for (const it of snap.items) {
+    if (it.buy) continue;
+    const p = byName.get(it.name);
+    if (!p) gone.push(it.name);
+    else if (!p.onHand) off.push(it.name);
+  }
+  return { gone: gone, off: off };
+}
+
+async function openProjectMix(mixId) {
+  const m = await store.mixes.get(mixId);
+  if (!m) return openProject(state.openProjectId);
+  await loadProjects();
+  const p = state.projects.find(x => x.id === m.projectId);
+  if (!p) return renderProjects();
+  showProjectPane('proj-mix');
+  const d = $('#proj-mix');
+  d.textContent = '';
+
+  d.appendChild(backHead(p.name, () => openProject(p.id)));
+
+  const lf = el('div', 'pad');
+  const fld = el('div', 'field');
+  const lab = el('label', null, 'Label');
+  lab.htmlFor = 'f-mixlabel';
+  const inp = el('input', 'input');
+  inp.id = 'f-mixlabel';
+  inp.type = 'text';
+  inp.placeholder = 'e.g. robe highlight';
+  inp.value = m.label || '';
+  const save = debounced(async () => { m.label = inp.value.trim(); await store.mixes.put(m); }, 300);
+  inp.addEventListener('input', () => save());
+  inp.addEventListener('blur', () => save.flush());
+  fld.append(lab, inp); lf.appendChild(fld);
+  d.appendChild(lf);
+
+  const gaps = inventoryGaps(m.snap);
+  if (gaps.gone.length || gaps.off.length) {
+    const f = el('div', 'flag');
+    const lines = [];
+    if (gaps.off.length) lines.push(listJoin(gaps.off) + (gaps.off.length === 1 ? ' is' : ' are') + ' no longer marked on hand.');
+    if (gaps.gone.length) lines.push(listJoin(gaps.gone) + (gaps.gone.length === 1 ? ' is' : ' are') + ' no longer in your inventory.');
+    f.appendChild(el('div', null, 'Since you saved this, ' + lines.join(' ')));
+    const rb = el('button', 'btn', 'Recalculate with the paints on hand now');
+    rb.addEventListener('click', () => recalcMix(m));
+    f.appendChild(rb);
+    f.appendChild(el('div', 'opt-sub', 'This makes a new mix. The one below is kept as it was.'));
+    d.appendChild(f);
+  }
+
+  if (m.thumb) {
+    const i = el('img', 'detail-thumb');
+    i.src = m.thumb; i.alt = 'Where the colour was sampled';
+    d.appendChild(i);
+  }
+
+  const dl = dayLabel(m.created);
+  d.appendChild(cardEl({
+    title: m.label || m.snap.card,
+    sub: 'Saved ' + (dl === 'Today' || dl === 'Yesterday' ? dl.toLowerCase() : 'on ' + dl) + ', exactly as it was.',
+    snap: m.snap, context: 'project', projectId: p.id,
+    source: m.thumb ? 'photo' : 'wheel', thumb: m.thumb
+  }));
+
+  const dz = el('div', 'danger-zone');
+  const del = el('button', 'btn btn-quiet btn-danger', 'Delete this mix');
+  del.addEventListener('click', async () => {
+    await store.mixes.del(m.id);
+    toast('Mix deleted', async () => { await store.mixes.put(m); openProject(p.id); });
+    openProject(p.id);
+  });
+  dz.appendChild(del);
+  d.appendChild(dz);
+}
+
+async function recalcMix(m) {
+  const onHand = state.paints.filter(p => p.onHand);
+  const coloured = m.snap.items.filter(it => !isWhite({ name: it.name })).length;
+  const r = onHand.length ? solve(m.snap.targetLab, onHand, coloured > 3 ? 5 : 3) : null;
+  if (!r) { toast('No mix could be found with the paints on hand now.'); return; }
+  const nm = {
+    id: newId(), projectId: m.projectId,
+    label: m.label ? m.label + ' (recalculated)' : 'Recalculated',
+    order: m.order + 0.5, created: Date.now(),
+    snap: snapOf(r, { card: 'On hand, recalculated', targetRgb: m.snap.targetRgb, targetLab: m.snap.targetLab, onHandOnly: true }),
+    thumb: m.thumb, from: m.id
+  };
+  await store.mixes.put(nm);
+  const all = (await store.mixes.byProject(m.projectId)).sort((a, b) => a.order - b.order);
+  for (let i = 0; i < all.length; i++) {
+    if (all[i].order !== i) { all[i].order = i; await store.mixes.put(all[i]); }
+  }
+  toast('Recalculated as a new mix. The original is kept.');
+  openProjectMix(nm.id);
+}
+
+async function useProjectPhoto(ph) {
+  await setInputMethod('photo');
+  $('#mix-recipe').style.display = 'none';
+  $('#mix-target').style.display = '';
+  showView('mix');
+  const img = new Image();
+  img.onload = () => useImage(img);
+  img.src = ph.url;
+}
+
+/* ===========================================================================
+   Storage check (DESIGN.md: shown in the Inventory tab, largest projects
+   first, so it is obvious what to delete).
+   Sizes are the length of each record as JSON. Photos and thumbnails are
+   ASCII data URLs and dominate, so characters track bytes closely; the
+   numbers are labelled as approximate rather than dressed up as exact.
+   =========================================================================== */
+async function renderStorage() {
+  const box = $('#storage');
+  if (!box || !db) return;
+  await loadProjects();
+  const size = (v) => JSON.stringify(v).length;
+
+  const hist = await store.history.all();
+  const paints = await store.allPaints();
+  const projs = [];
+  for (const p of state.projects) {
+    const ms = await store.mixes.byProject(p.id);
+    const ps = await store.photos.byProject(p.id);
+    projs.push({
+      p: p, mixes: ms.length, photos: ps.length,
+      bytes: size(p) + ms.reduce((a, m) => a + size(m), 0) + ps.reduce((a, x) => a + size(x), 0)
+    });
+  }
+  projs.sort((a, b) => b.bytes - a.bytes);
+  const histBytes = hist.reduce((a, e) => a + size(e), 0);
+  const invBytes = size(paints);
+  const total = histBytes + invBytes + projs.reduce((a, x) => a + x.bytes, 0);
+
+  box.textContent = '';
+  const row = (name, sub, bytes) => {
+    const r = el('div', 'srow');
+    const l = el('div');
+    l.appendChild(el('div', null, name));
+    if (sub) l.appendChild(el('div', 'opt-sub', sub));
+    r.append(l, el('div', 'srow-n', fmtBytes(bytes)));
+    box.appendChild(r);
+  };
+  row('History', hist.length + (hist.length === 1 ? ' entry' : ' entries'), histBytes);
+  row('Paints', paints.length + (paints.length === 1 ? ' paint' : ' paints'), invBytes);
+  for (const x of projs) {
+    row(x.p.name + (x.p.finished ? ' (finished)' : ''),
+        'Project  ·  ' + x.mixes + (x.mixes === 1 ? ' mix' : ' mixes') + ', ' +
+        x.photos + (x.photos === 1 ? ' photo' : ' photos'), x.bytes);
+  }
+  const t = el('div', 'srow srow-total');
+  t.append(el('div', null, 'Total, approximately'), el('div', 'srow-n', fmtBytes(total)));
+  box.appendChild(t);
+
+  if (navigator.storage && navigator.storage.estimate) {
+    try {
+      const est = await navigator.storage.estimate();
+      if (est && est.usage != null) {
+        box.appendChild(el('p', 'note pad',
+          'The browser counts about ' + fmtBytes(est.usage) + ' in use for this app, which includes its own overheads.'));
+      }
+    } catch (_) {}
+  }
 }
 
 /* --- mix screen wiring -------------------------------------------------- */
@@ -2238,6 +3411,9 @@ $('#opt-complex').addEventListener('click', async (e) => {
   await store.setSetting('complexMixes', !on);
   runSolve();
 });
+$('#btn-newproj').addEventListener('click', createFromChooser);
+$('#f-newproj').addEventListener('keydown', (e) => { if (e.key === 'Enter') createFromChooser(); });
+$('#btn-proj-cancel').addEventListener('click', closeSheets);
 $('#seg-wheel').addEventListener('click', () => setInputMethod('wheel'));
 $('#seg-photo').addEventListener('click', () => setInputMethod('photo'));
 $('#opt-unit').addEventListener('click', async (e) => {
@@ -2253,6 +3429,7 @@ $('#opt-unit').addEventListener('click', async (e) => {
     db = await openDb();
     await seedIfFirstRun();
     await load();
+    await loadProjects();
     renderInventory();
     $('#opt-complex').setAttribute('aria-checked',
       String(!!(await store.getSetting('complexMixes'))));

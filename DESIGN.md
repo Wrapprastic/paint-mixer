@@ -264,6 +264,15 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 23 Oct 2026 | Every recipe card is drawn from a stored snapshot, live or reopened, through the same renderer. Ratings are stored rather than recomputed, so tuning the thresholds later cannot quietly rewrite an old mix |
+| 23 Oct 2026 | With no active project, Save asks which project once, and the project chosen or created there becomes active, so the next save is one tap. Creating a project also makes it active if nothing else is |
+| 23 Oct 2026 | Marking Mixed on a mix reopened from a project tags it to that project, not to whichever project is active |
+| 23 Oct 2026 | Deleting a History entry, a saved mix or a reference photo happens at once with a few seconds to undo, not a confirmation. Deleting a project and clearing all History confirm by a second tap on the same button, never a dialog |
+| 23 Oct 2026 | Mixes reorder by dragging a handle on each tile, not by long-press. On iOS a long-press cannot take a gesture back from the page scroll once it has started; a handle can opt out of scrolling from the first touch |
+| 23 Oct 2026 | "Save all to project" saves each spot's On hand mix, since that is the one you can mix next session without buying anything, plus the photo. Labels start empty and can be added from the project |
+| 23 Oct 2026 | Reference photos are stored as JPEG at quality 0.9, longest edge 1200px. In testing, re-sampling a stored photo shifted colour by about 1/255 in one channel, well below anything visible |
+| 23 Oct 2026 | Deleting a project keeps its History entries; they lose the project tag. History is a log of what was mixed, which stays true |
+| 23 Oct 2026 | The storage check sits at the foot of the Inventory tab. Sizes are approximate (each record's length as JSON), and labelled as such |
 | 21 Sep 2026 | Photo sampling: a tap drops a pin, and the button below advances to the recipe. This is how the single-spot fast path and multi-spot live together without a mode to choose between them — one tap plus the button is still two taps |
 | 21 Sep 2026 | Photo samples are averaged in linear light, not over gamma-encoded sRGB, which would bias every sample dark and quietly poison the value ratings |
 | 21 Sep 2026 | Display P3 to sRGB is done by the browser's own colour management when the image is drawn into a plain sRGB canvas. Creating the canvas as display-p3 would break this |
@@ -302,5 +311,5 @@ Anything not on this page's feature list stays out unless a decision in the log 
 - [x] How `strength` converts parts into effective proportions. Settled 21 Sep 2026 as `parts * 2^(strength - 3)`; see the decisions log.
 - [ ] Whether the Inventory name search needs pigment aliases, so that typing "Alizarin Crimson" finds Permanent Crimson. Not currently in the entry schema.
 - [ ] Whites and blacks are identified by matching "white" or "black" in the pigment name, because nothing in the entry schema marks them. It works for every pigment in the library and for the obvious custom names, but a paint called "Flake" or "Payne's Grey" would not be recognised for the white and black rules. A `role` field would fix it.
-- [ ] "Save all to project" on the photo screen is not built yet: it needs Projects, which is a later session.
+- [x] "Save all to project" on the photo screen, built 23 Oct 2026 with Projects.
 - [ ] Recipes sometimes come out as one part white plus two or three touches. The ratios are right and the predicted swatch is honest, but that is a very small quantity of paint to mix in practice. Consider scaling recipes up to a comfortable knife-load before display.
