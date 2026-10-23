@@ -264,6 +264,13 @@ Anything not on this page's feature list stays out unless a decision in the log 
 
 | Date | Decision |
 | --- | --- |
+| 23 Oct 2026 | Offline support is a cache-first service worker with a versioned cache, filled at install. After that the app makes no network requests; the only traffic is the browser's own periodic check for a new `sw.js`, which is how updates arrive. Every release must bump the cache version, or installed copies never update |
+| 23 Oct 2026 | Opened in Safari on an iPhone rather than from the Home Screen, the Mix screen says once per launch to add it to the Home Screen first, and why. Dismissable, never blocking |
+| 23 Oct 2026 | Persistent storage is requested, but only inside the installed app, because some browsers turn that request into a permission prompt |
+| 23 Oct 2026 | The screen wake lock is held whenever a recipe card is on screen: a fresh recipe, a reopened History entry or a project mix. If the browser refuses it, it is tried again on the next screen change or return to the app, never in a loop |
+| 23 Oct 2026 | Export is two taps, prepare then save, because iOS only opens the share sheet straight from a tap and gathering every photo can outlast that tap. The share sheet is used where available (Save to Files), with a plain download elsewhere. The time of the last backup is shown beside the button |
+| 23 Oct 2026 | Restoring a backup replaces paints and settings, and adds History, projects, mixes and photos without deleting any, so an older backup cannot wipe newer work. It is one transaction, validated first, and a summary of the file is shown before anything changes |
+| 23 Oct 2026 | Home Screen icon: three overlapping discs in Tischler's primaries (Cadmium Lemon, Quinacridone Magenta, Cobalt Teal), with the overlaps mixed subtractively, on the app's grey |
 | 23 Oct 2026 | Every recipe card is drawn from a stored snapshot, live or reopened, through the same renderer. Ratings are stored rather than recomputed, so tuning the thresholds later cannot quietly rewrite an old mix |
 | 23 Oct 2026 | With no active project, Save asks which project once, and the project chosen or created there becomes active, so the next save is one tap. Creating a project also makes it active if nothing else is |
 | 23 Oct 2026 | Marking Mixed on a mix reopened from a project tags it to that project, not to whichever project is active |

@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#6e6e6e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Paint Mixer">
 <meta name="color-scheme" content="dark">
@@ -590,6 +594,7 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
   font-size: 14px; line-height: 1.5;
 }
 .flag .btn { margin: 12px 0 8px; }
+.flag .opt-sub { margin-top: 8px; line-height: 1.5; }
 .danger-zone { padding: 8px 16px 26px; display: flex; flex-direction: column; gap: 10px; }
 
 .new-proj { display: flex; gap: 10px; padding: 14px 16px 8px; }
@@ -704,6 +709,21 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
     </div>
     <div class="section-head">Storage</div>
     <div id="storage"></div>
+    <div class="section-head">Backup</div>
+    <div id="backup">
+      <p class="note pad" style="margin:0;padding-bottom:4px">
+        iOS can clear an app&rsquo;s storage when the phone runs short of space. A backup
+        file keeps your paints, History, projects and their photos somewhere safer,
+        such as Files or iCloud Drive.
+      </p>
+      <p class="note pad" id="backup-last" style="margin:0;padding-top:4px;padding-bottom:0"></p>
+      <div class="pad" style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn" id="btn-export">Export a backup</button>
+        <button class="btn btn-quiet" id="btn-import">Restore from a backup</button>
+        <input id="import-input" type="file" accept="application/json,.json" style="display:none">
+      </div>
+      <div id="import-panel"></div>
+    </div>
     <p class="credit">
       Mixing model by <a href="https://github.com/scrtwpns/mixbox" target="_blank" rel="noopener">Mixbox</a>,
       &copy; 2022 Secret Weapons, used under CC BY-NC 4.0 for non-commercial use.
@@ -713,6 +733,13 @@ textarea.input { min-height: 88px; resize: vertical; line-height: 1.45; }
   <section class="view active" id="view-mix">
     <!-- Target: hue ring plus a saturation/brightness square, Photoshop style. -->
     <div id="mix-target">
+      <div class="notice" id="install-note" style="display:none">
+        Add Paint Mixer to your Home Screen before setting up your paints: tap Share,
+        then Add to Home Screen. Used here in Safari, your paints and projects are not
+        kept &mdash; Safari clears them, and the Home Screen app has its own separate
+        storage anyway.
+        <button class="btn" id="btn-install-later">Not now</button>
+      </div>
       <div class="seg">
         <button id="seg-wheel" aria-selected="true">Colour wheel</button>
         <button id="seg-photo" aria-selected="false">Photo</button>
@@ -1685,7 +1712,7 @@ function showView(name) {
   $('#count').style.display = name === 'inventory' ? '' : 'none';
   if (name === 'history') renderHistory();
   if (name === 'projects') renderProjects();
-  if (name === 'inventory') renderStorage();
+  if (name === 'inventory') { renderStorage(); renderBackupLast(); }
 }
 
 document.querySelectorAll('.tab').forEach(t => {
@@ -3391,11 +3418,278 @@ async function renderStorage() {
   if (navigator.storage && navigator.storage.estimate) {
     try {
       const est = await navigator.storage.estimate();
+      let line = '';
       if (est && est.usage != null) {
-        box.appendChild(el('p', 'note pad',
-          'The browser counts about ' + fmtBytes(est.usage) + ' in use for this app, which includes its own overheads.'));
+        line = 'The browser counts about ' + fmtBytes(est.usage) + ' in use for this app, which includes its own overheads.';
       }
+      if (navigator.storage.persisted && await navigator.storage.persisted()) {
+        line += (line ? ' ' : '') + 'Storage is marked as persistent, so the browser should not clear it to free space.';
+      }
+      if (line) box.appendChild(el('p', 'note pad', line));
     } catch (_) {}
+  }
+}
+
+/* ===========================================================================
+   Home Screen app
+   =========================================================================== */
+const isStandalone = () =>
+  window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+const isIOS = () =>
+  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/* DESIGN.md makes Home Screen install required, not optional: a Safari tab
+   loses its storage after seven days without a visit, and the installed app
+   keeps separate storage anyway, so anything set up in the browser is lost
+   either way. Said once per launch, dismissable, never blocking. */
+function initInstallNote() {
+  if (isStandalone() || !isIOS()) return;
+  $('#install-note').style.display = '';
+  $('#btn-install-later').addEventListener('click', () => { $('#install-note').style.display = 'none'; });
+}
+
+/* ===========================================================================
+   Screen wake lock (DESIGN.md, Technical 1): the screen stays on while a
+   recipe is showing, so it has not dimmed by the time you look back from the
+   palette. Safari 18.4 and later; elsewhere this quietly does nothing.
+   =========================================================================== */
+let wakeLock = null, wakeBusy = false, wakeAgain = false;
+
+function recipeOnScreen() {
+  if (document.visibilityState !== 'visible') return false;
+  const active = document.querySelector('.view.active');
+  if (!active) return false;
+  return ['mix-recipe', 'hist-detail', 'proj-mix'].some(id => {
+    const e = document.getElementById(id);
+    return e && active.contains(e) && e.style.display !== 'none';
+  });
+}
+
+async function syncWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  if (wakeBusy) { wakeAgain = true; return; }
+  wakeBusy = true;
+  try {
+    const want = recipeOnScreen();
+    if (want && !wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!want && wakeLock) {
+      const l = wakeLock;
+      wakeLock = null;
+      await l.release();
+    }
+  } catch (_) {
+    wakeLock = null;
+  } finally {
+    wakeBusy = false;
+  }
+  /* Re-run only if something changed while the request was in flight. Never
+     re-run just because the lock is wanted but not held: when the browser
+     refuses (iOS can, in Low Power Mode) that retried 22,000 times a second
+     in testing. A refused lock is tried again on the next real change, such
+     as a new screen or the app coming back to the foreground. */
+  if (wakeAgain) { wakeAgain = false; syncWakeLock(); }
+}
+
+/* Watching the panes rather than calling this from every navigation path
+   means a new screen cannot forget to take or drop the lock. The browser
+   drops it by itself when the app is hidden, so it is re-taken on return. */
+function initWakeLock() {
+  const obs = new MutationObserver(syncWakeLock);
+  for (const id of ['mix-recipe', 'hist-detail', 'proj-mix']) {
+    obs.observe(document.getElementById(id), { attributes: true, attributeFilter: ['style'] });
+  }
+  document.querySelectorAll('.view').forEach(v => obs.observe(v, { attributes: true, attributeFilter: ['class'] }));
+  document.addEventListener('visibilitychange', syncWakeLock);
+}
+
+/* ===========================================================================
+   Backup export and import (DESIGN.md, Technical 2)
+   One JSON file holding every store. Photos are already data URLs, so the
+   file is self-contained and readable without the app.
+   =========================================================================== */
+const BACKUP_STORES = { inventory: 'id', settings: 'key', history: 'at', projects: 'id', mixes: 'id', photos: 'id' };
+
+async function buildBackup() {
+  const b = { app: 'paint-mixer', format: 1, dbVersion: DB_VERSION, exported: new Date().toISOString() };
+  for (const name of Object.keys(BACKUP_STORES)) b[name] = await storeOf(name).all();
+  return b;
+}
+
+/* The share sheet is the reliable way to put a file into Files or iCloud
+   Drive from a Home Screen app on iOS; a download link is the fallback for
+   everywhere else. Returns false if the person cancelled. */
+async function deliverFile(file) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: 'Paint Mixer backup' });
+      return true;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return false;
+      /* any other failure: fall through to a plain download */
+    }
+  }
+  const url = URL.createObjectURL(file);
+  const a = el('a');
+  a.href = url;
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  return true;
+}
+
+async function renderBackupLast() {
+  const t = await store.getSetting('lastBackup');
+  $('#backup-last').textContent = t
+    ? 'Last backup: ' + dayLabel(t) + ', ' + timeLabel(t) + '.'
+    : 'No backup made yet.';
+}
+
+/* Export is two taps on purpose. iOS only opens the share sheet straight
+   from a tap, and gathering every photo out of storage can take long enough
+   for that tap to expire. So the first tap prepares the file and the second
+   hands it over. */
+let pendingBackup = null;
+async function onExport() {
+  const btn = $('#btn-export');
+  if (pendingBackup) {
+    const ok = await deliverFile(pendingBackup);
+    if (ok) {
+      await store.setSetting('lastBackup', Date.now());
+      pendingBackup = null;
+      btn.textContent = 'Export a backup';
+      await renderBackupLast();
+    }
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Preparing…';
+  try {
+    const b = await buildBackup();
+    const json = JSON.stringify(b);
+    const day = b.exported.slice(0, 10);
+    pendingBackup = new File([json], 'paint-mixer-backup-' + day + '.json', { type: 'application/json' });
+    btn.textContent = 'Save the backup file (' + fmtBytes(json.length) + ')';
+  } catch (e) {
+    console.error('Backup failed', e);
+    btn.textContent = 'Export a backup';
+    toast('The backup could not be made.');
+  }
+  btn.disabled = false;
+}
+
+function checkBackup(b) {
+  if (!b || typeof b !== 'object' || b.app !== 'paint-mixer') return 'That is not a Paint Mixer backup file.';
+  if (typeof b.format !== 'number') return 'That is not a Paint Mixer backup file.';
+  if (b.format > 1) return 'That backup was made by a newer version of Paint Mixer. Update the app, then try again.';
+  for (const [name, key] of Object.entries(BACKUP_STORES)) {
+    if (!Array.isArray(b[name])) return 'That backup file is incomplete, so nothing has been changed.';
+    if (b[name].some(r => !r || r[key] == null)) return 'That backup file is damaged, so nothing has been changed.';
+  }
+  return null;
+}
+
+/* Paints and settings are replaced: they describe the setup, and the backup
+   is the record of it. History, projects, mixes and photos are added and
+   updated but never deleted, so restoring an older file over newer work
+   cannot lose anything that was logged or saved since. All of it happens in
+   one transaction: either the whole backup lands or none of it does. */
+function restoreBackup(b) {
+  return new Promise((resolve, reject) => {
+    const names = Object.keys(BACKUP_STORES);
+    const t = db.transaction(names, 'readwrite');
+    t.objectStore('inventory').clear();
+    t.objectStore('settings').clear();
+    for (const name of names) {
+      const s = t.objectStore(name);
+      for (const r of b[name]) s.put(r);
+    }
+    /* the file just restored is itself a backup made at that moment */
+    const at = Date.parse(b.exported);
+    if (!isNaN(at)) t.objectStore('settings').put({ key: 'lastBackup', value: at });
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error);
+  });
+}
+
+function showImportPanel(b) {
+  const box = $('#import-panel');
+  box.textContent = '';
+  const err = checkBackup(b);
+  const f = el('div', 'flag');
+  f.style.marginBottom = '20px';
+  if (err) {
+    f.appendChild(el('div', null, err));
+    box.appendChild(f);
+    return;
+  }
+  const at = Date.parse(b.exported);
+  const counts = [
+    b.inventory.length + (b.inventory.length === 1 ? ' paint' : ' paints'),
+    b.history.length + (b.history.length === 1 ? ' History entry' : ' History entries'),
+    b.projects.length + (b.projects.length === 1 ? ' project' : ' projects') + ' with ' +
+      b.mixes.length + (b.mixes.length === 1 ? ' mix' : ' mixes') + ' and ' +
+      b.photos.length + (b.photos.length === 1 ? ' photo' : ' photos')
+  ];
+  f.appendChild(el('div', null,
+    'Backup from ' + (isNaN(at) ? 'an unknown date' : dayLabel(at) + ', ' + timeLabel(at)) +
+    ': ' + listJoin(counts) + '.'));
+  f.appendChild(el('div', 'opt-sub',
+    'Restoring replaces your paints and settings with the ones in the backup. Its History, ' +
+    'projects and photos are added to what is already here, and none of those are deleted.'));
+  const go = el('button', 'btn', 'Restore this backup');
+  const no = el('button', 'btn btn-quiet', 'Cancel');
+  go.style.marginTop = '12px';
+  go.addEventListener('click', async () => {
+    go.disabled = true; no.disabled = true;
+    go.textContent = 'Restoring…';
+    try {
+      await restoreBackup(b);
+      go.textContent = 'Restored. Reopening…';
+      /* reload so every screen, preference and cached list starts from the
+         restored data rather than being patched up piecemeal */
+      setTimeout(() => location.reload(), 700);
+    } catch (e) {
+      console.error('Restore failed', e);
+      go.textContent = 'Restore this backup';
+      go.disabled = false; no.disabled = false;
+      toast('The restore failed, so nothing has been changed.');
+    }
+  });
+  no.addEventListener('click', () => { box.textContent = ''; });
+  const acts = el('div', 'sheet-actions');
+  acts.append(go, no);
+  f.appendChild(acts);
+  box.appendChild(f);
+}
+
+function initBackup() {
+  $('#btn-export').addEventListener('click', onExport);
+  const input = $('#import-input');
+  $('#btn-import').addEventListener('click', () => input.click());
+  input.addEventListener('change', async () => {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    let b = null;
+    try { b = JSON.parse(await file.text()); } catch (_) { b = null; }
+    showImportPanel(b);
+  });
+}
+
+function initOffline() {
+  if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('Offline support unavailable', err));
+  /* Ask for storage the browser will not evict under pressure. Only in the
+     installed app: elsewhere some browsers turn this into a permission
+     prompt, which DESIGN.md rules out. */
+  if (isStandalone() && navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
   }
 }
 
@@ -3440,7 +3734,11 @@ $('#opt-unit').addEventListener('click', async (e) => {
     initPhoto();
     const savedInput = await store.getSetting('inputMethod');
     await setInputMethod(savedInput === 'photo' ? 'photo' : 'wheel');
+    initInstallNote();
+    initWakeLock();
+    initBackup();
     showView('mix');
+    initOffline();
   } catch (err) {
     console.error('Storage failed to open', err);
     $('#inv-list').innerHTML =
